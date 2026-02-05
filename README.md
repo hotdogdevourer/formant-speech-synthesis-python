@@ -8,3 +8,9 @@ To run, do the command:
 ```pip install numpy scipy```
 
 This has been barely debugged, so bugs may/will occur.
+
+# What is it?
+It is a custom formant-based speech synthesis system in python.
+
+# Is it good?
+I wouldn't say it is, but it's fine for a base or experiments.
