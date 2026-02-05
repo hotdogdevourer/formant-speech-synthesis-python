@@ -3,6 +3,7 @@
 A Python 3.11 script for formant-based speech synthesis, designed for experimentation and learning about text-to-speech at the phoneme/formant level.
 
 ⚠️ Windows-style file paths are assumed. Minor tweaks may be required for other OSes.
+
 ⚠️ This is a barely-debugged project. Expect bugs, but it works for experiments.
 
 # Installation
