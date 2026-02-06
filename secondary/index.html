@@ -3,444 +3,1205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FSB4 Speech Synthesizer (Pyodide)</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+    <title>FSB4 Debug Synthesizer (Pyodide)</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; background: #f1f5f9; color: #1e293b; }
-        .container { background: white; border-radius: 16px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-        h1 { text-align: center; color: #4338ca; margin-bottom: 8px; font-size: 28px; }
-        .subtitle { text-align: center; color: #64748b; margin-bottom: 25px; font-size: 16px; }
-        .status { background: #0f172a; color: #38bdf8; padding: 16px; border-radius: 10px; font-family: monospace; margin: 20px 0; min-height: 26px; line-height: 1.5; }
-        textarea { width: 100%; height: 180px; padding: 16px; border: 2px solid #cbd5e1; border-radius: 12px; font-family: monospace; font-size: 16px; resize: vertical; margin: 15px 0; background: #f8fafc; }
-        .controls { display: flex; flex-wrap: wrap; gap: 15px; margin: 25px 0; justify-content: center; }
-        button { background: linear-gradient(to right, #4338ca, #5b21b6); color: white; border: none; padding: 14px 28px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.25s; font-size: 17px; box-shadow: 0 4px 10px rgba(67, 56, 202, 0.25); }
-        button:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(67, 56, 202, 0.35); }
-        button:disabled { background: #94a3b8; cursor: not-allowed; transform: none; opacity: 0.85; box-shadow: none; }
-        button.stop { background: linear-gradient(to right, #dc2626, #b91c1c); }
-        .loading { text-align: center; padding: 50px 20px; }
-        .spinner { border: 5px solid #cbd5e1; border-top: 5px solid #4338ca; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 25px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #loading-status { font-size: 20px; color: #4338ca; font-weight: 600; margin-top: 15px; }
-        .error { background: #fef2f2; color: #b91c1c; padding: 18px; border-radius: 12px; margin: 20px 0; border-left: 4px solid #ef4444; font-weight: 500; }
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #e74c3c;
+            --bg-color: #ecf0f1;
+            --text-color: #2c3e50;
+            --border-color: #bdc3c7;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-color);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        .tab-btn.active {
+            color: var(--secondary-color);
+        }
+        
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--secondary-color);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .split-pane {
+            display: flex;
+            gap: 20px;
+            height: 400px;
+        }
+        
+        .pane {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+        }
+        
+        .phoneme-list {
+            list-style: none;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        .phoneme-list li {
+            padding: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .phoneme-list li:hover {
+            background-color: rgba(52, 152, 219, 0.1);
+        }
+        
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            margin-bottom: 15px;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        button.danger {
+            background-color: var(--accent-color);
+        }
+        
+        button.danger:hover {
+            background-color: #c0392b;
+        }
+        
+        button.success {
+            background-color: #27ae60;
+        }
+        
+        button.success:hover {
+            background-color: #229954;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .control-group h3 {
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .control-label {
+            font-weight: 600;
+            min-width: 150px;
+        }
+        
+        select, input[type="number"] {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 24px;
+        }
+        
+        .value-display {
+            min-width: 50px;
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .playback-controls {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .status-bar {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            word-wrap: break-word;
+        }
+        
+        .reference-text {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            overflow: auto;
+            max-height: 600px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--secondary-color);
+            font-size: 18px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(52, 152, 219, 0.3);
+            border-top: 4px solid var(--secondary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+        
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .audio-progress {
+            width: 100%;
+            height: 6px;
+            background-color: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--secondary-color);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        
+        .instruction-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid var(--secondary-color);
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .error {
+            color: var(--accent-color);
+            font-weight: bold;
+        }
+        
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>FSB4 Speech Synthesizer</h1>
-        <div class="subtitle">Formant synthesis with crossfade blending • Runs entirely in-browser</div>
+        <header>
+            <h1>FSB4 Debug Synthesizer (OVRLP Format)</h1>
+            <p>Pyodide-powered Formant Speech Synthesizer</p>
+        </header>
         
-        <div id="loading-screen" class="loading">
+        <div id="loading" class="loading">
             <div class="spinner"></div>
-            <div id="loading-status">Initializing Pyodide...</div>
-            <div style="color: #64748b; font-size: 15px; margin-top: 12px;">(First load: 20-45 seconds • Cached thereafter)</div>
+            <p>Loading Pyodide and FSB4 module...</p>
         </div>
         
-        <div id="main-app" style="display:none;">
-            <div class="status" id="status-bar">Ready • Enter phonemes below → Click "Render"</div>
-            
-            <label style="font-weight: 600; display: block; margin-bottom: 10px; font-size: 17px;">Phoneme Spec (PHONEME DUR OVRLP P0):</label>
-            <textarea id="spec-editor" spellcheck="false">SIL  0.190 0.000 0.0
-HH   0.080 0.012 115.0
-EH   0.120 0.025 115.0
-L    0.110 0.015 115.0
-OW   0.180 0.000 105.0
-SIL  0.280 0.000 0.0</textarea>
-            
-            <div class="controls">
-                <button id="render-btn" onclick="renderAudio()">🎨 Render Audio</button>
-                <button id="play-btn" onclick="togglePlayback()" disabled>▶ Play</button>
-                <button id="export-btn" onclick="exportWAV()" disabled>💾 Export WAV</button>
+        <div id="app" class="hidden">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="editor">Phoneme Editor</button>
+                <button class="tab-btn" data-tab="voice">Voice Controls</button>
+                <button class="tab-btn" data-tab="render">Audio Rendering</button>
+                <button class="tab-btn" data-tab="reference">Reference</button>
             </div>
             
-            <div id="error-container"></div>
+            <!-- Phoneme Editor Tab -->
+            <div id="editor" class="tab-content active">
+                <div class="split-pane">
+                    <div class="pane">
+                        <h3>Phoneme Library (click to insert)</h3>
+                        <ul id="phonemeList" class="phoneme-list"></ul>
+                    </div>
+                    <div class="pane">
+                        <h3>Phoneme Spec (PHONEME  DUR    OVRLP  P0 [P1...])</h3>
+                        <textarea id="specEditor" spellcheck="false" placeholder="Enter phoneme specifications here..."></textarea>
+                        <div class="btn-group">
+                            <button onclick="loadSpec()">Load Spec</button>
+                            <button onclick="saveSpec()">Save Spec</button>
+                            <button onclick="clearSpec()">Clear</button>
+                            <button onclick="parseSpec()" class="success">Parse to Phonemes</button>
+                            <button onclick="saveBytecode()" class="success">→ Save Bytecode (.phx)</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Voice Controls Tab -->
+            <div id="voice" class="tab-content">
+                <div class="control-group">
+                    <h3>Voice Selection</h3>
+                    <div class="control-row">
+                        <span class="control-label">Active Voice:</span>
+                        <select id="voiceCombo" onchange="changeVoice()"></select>
+                        <span class="control-label">Pitch Base:</span>
+                        <input type="number" id="pitchSpin" value="115" min="50" max="400" style="width: 80px;">
+                        <span>Hz</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Synthesis Parameters</h3>
+                    <div class="control-row">
+                        <span class="control-label">Speed (%):</span>
+                        <input type="range" id="speedSlider" min="50" max="200" value="100">
+                        <span id="speedValue" class="value-display">100%</span>
+                    </div>
+                    <div class="control-row">
+                        <span class="control-label">Formant Shift (Hz):</span>
+                        <input type="range" id="formantSlider" min="-200" max="200" value="0">
+                        <span id="formantValue" class="value-display">0</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>Bytecode File Operations</h3>
+                    <div class="btn-group">
+                        <button onclick="loadBytecode()">Load .PHX Bytecode</button>
+                        <button onclick="saveBytecode()">Save .PHX Bytecode</button>
+                        <button onclick="loadPhnFile()">Load .PHN (Legacy)</button>
+                        <button onclick="exportWav()">Export Rendered WAV</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Audio Rendering Tab -->
+            <div id="render" class="tab-content">
+                <div class="instruction-box">
+                    <strong>RENDER WORKFLOW:</strong><br>
+                    1. Click "Render Audio from .phx File" below<br>
+                    2. SELECT a valid .phx bytecode file in the file dialog<br>
+                    3. FSB4 will LOAD the bytecode → SYNTHESIZE audio → CACHE buffer<br>
+                    4. Use playback controls to hear the cached audio (ZERO synthesis overhead)<br><br>
+                    <strong>⚠️ AUDIO SYNTHESIS ONLY OCCURS AFTER VALID BYTECODE IS LOADED</strong><br>
+                    <strong>OVRLP FORMAT:</strong> Each phoneme now includes overlap duration (seconds) for smooth crossfading between adjacent phonemes.
+                </div>
+                
+                <button onclick="renderAudioFromFile()" style="width: 100%; padding: 15px; font-size: 16px;" class="success">
+                    Render Audio from .phx File
+                </button>
+                
+                <div id="renderStatus" class="status-bar" style="margin-top: 20px;">
+                    Ready to render audio from bytecode file
+                </div>
+            </div>
+            
+            <!-- Reference Tab -->
+            <div id="reference" class="tab-content">
+                <div class="reference-text" id="referenceText"></div>
+            </div>
+            
+            <!-- Playback Controls -->
+            <div class="playback-controls">
+                <h3>Playback Controls (cached audio ONLY - NO SYNTHESIS)</h3>
+                <div class="btn-group">
+                    <button id="playBtn" onclick="playCachedAudio()" style="width: 200px; padding: 15px; font-size: 16px;">▶ Play Cached Audio</button>
+                    <button id="stopBtn" onclick="stopPlayback()" style="width: 100px; padding: 15px; font-size: 16px;" disabled>■ Stop</button>
+                </div>
+                <div class="audio-progress">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+            </div>
+            
+            <!-- Status Bar -->
+            <div class="status-bar" id="statusBar">
+                Workflow: Parse → Save Bytecode → Render from .phx File → Play Cached Buffer
+            </div>
         </div>
     </div>
 
     <script>
+        // Global state (mirroring Python version)
         let pyodide = null;
+        let fsb = null;
+        let currentSpecs = [];
         let renderedAudio = null;
         let audioContext = null;
         let audioBuffer = null;
+        let audioSource = null;
         let isPlaying = false;
-        let sourceNode = null;
-        const SAMPLE_RATE = 48000;
+        let startTime = 0;
+        let startOffset = 0;
         
-        // Initialize Pyodide and define Python functions
-        async function initPyodide() {
+        // Initialize Pyodide and FSB4
+        async function main() {
             try {
-                document.getElementById('loading-status').textContent = "Loading Pyodide runtime...";
-                pyodide = await loadPyodide();
+                document.getElementById('statusBar').textContent = 'Loading Pyodide runtime...';
                 
-                document.getElementById('loading-status').textContent = "Installing numpy...";
-                await pyodide.loadPackage("numpy");
+                // Load Pyodide
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+                });
                 
-                document.getElementById('loading-status').textContent = "Installing scipy...";
-                await pyodide.loadPackage("scipy");
+                document.getElementById('statusBar').textContent = 'Installing required packages...';
                 
-                document.getElementById('loading-status').textContent = "Loading FSB4 engine...";
+                // Install required packages
+                await pyodide.loadPackage(['numpy', 'scipy']);
                 
-                // Define Python functions that will be callable from JS
-                await pyodide.runPythonAsync(`
-import numpy as np
-import scipy.signal as sig
-
-# Minimal FSB4 phoneme set
-VOWELS = {'AH','AE','AA','AO','EH','EY','IH','IY','OW','UH','UW','ER'}
-STOPS = {'P','T','K','B','D','G','CH'}
-BYTE_TO_PHONEME = {i: v for i, v in enumerate([
-    'SIL','AH','AE','AA','AO','EH','EY','IH','IY','OW','UH','UW','ER','B',
-    'D','G','P','T','K','M','N','NG','L','R','F','S','SH','TH','DH','V','Z','ZH','W','Y','HH','CH','JH'
-])}
-
-# Minimal voice data
-VOICE_DATA = {
-    'AH': {'f1': 700, 'f2': 1100, 'f3': 2400, 'length': 0.14},
-    'EH': {'f1': 530, 'f2': 1700, 'f3': 2450, 'length': 0.14},
-    'IH': {'f1': 420, 'f2': 1950, 'f3': 2500, 'length': 0.14},
-    'OW': {'f1': 450, 'f2': 900, 'f3': 2350, 'length': 0.14},
-    'L':  {'f1': 400, 'f2': 1150, 'f3': 2450, 'length': 0.12},
-    'HH': {'f1': None, 'f2': None, 'f3': None, 'length': 0.125},
-    'M':  {'f1': 350, 'f2': 1050, 'f3': 2250, 'length': 0.12},
-    'N':  {'f1': 320, 'f2': 1150, 'f3': 2450, 'length': 0.12},
-    'NG': {'f1': 280, 'f2': 950, 'f3': 2350, 'length': 0.12},
-    'R':  {'f1': 450, 'f2': 1250, 'f3': 1500, 'length': 0.12},
-    'SIL':{'f1': 0, 'f2': 0, 'f3': 0, 'length': 0.19},
-}
-
-def get_phoneme_data(ph):
-    return VOICE_DATA.get(ph, VOICE_DATA['SIL'])
-
-def parse_spec(text):
-    specs = []
-    for line in text.strip().splitlines():
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        parts = line.split()
-        if len(parts) < 4:
-            continue
-        ph = parts[0].upper()
-        if ph not in VOICE_DATA:
-            continue
-        try:
-            dur = max(0.01, min(2.0, float(parts[1])))
-            overlap = max(0.0, min(0.5, float(parts[2])))
-            pitch = [float(parts[3])]
-            ph_data = get_phoneme_data(ph)
-            specs.append({
-                'phoneme': ph,
-                'duration': dur,
-                'overlap': overlap,
-                'pitch_contour': pitch,
-                'f1': ph_data.get('f1', 0) or 0,
-                'f2': ph_data.get('f2', 0) or 0,
-                'f3': ph_data.get('f3', 0) or 0,
-                'voiced': ph not in {'SIL','B','D','G','P','T','K','F','S','SH','TH','HH','CH'}
-            })
-        except:
-            continue
-    return specs
-
-def stable_resonator(fs, freq, bw):
-    if freq <= 0:
-        return np.array([1.0]), np.array([1.0])
-    w0 = 2 * np.pi * freq / fs
-    bw_rad = max(2 * np.pi * bw / fs, 2 * np.pi * 80 / fs)
-    a1 = -2 * np.exp(-bw_rad/2) * np.cos(w0)
-    a2 = np.exp(-bw_rad)
-    b0 = np.sqrt(1 - a2)
-    return np.array([b0]), np.array([1.0, a1, a2])
-
-def apply_formants(fs, signal, f1, f2, f3):
-    for freq, bw in [(f1, 60), (f2, 90), (f3, 150)]:
-        if freq and freq > 50:
-            b, a = stable_resonator(fs, freq, bw)
-            signal = sig.lfilter(b, a, signal)
-    b, a = sig.butter(1, 900/(fs/2), btype='high')
-    return sig.lfilter(b, a, signal)
-
-def synthesize_phoneme(fs, spec):
-    ph = spec['phoneme']
-    dur = spec['duration']
-    f1, f2, f3 = spec['f1'], spec['f2'], spec['f3']
-    pitch = spec['pitch_contour'][0] if spec['pitch_contour'] else 115.0
-    voiced = spec['voiced']
-    
-    n = int(dur * fs)
-    if ph == 'SIL':
-        return np.zeros(n)
-    
-    if not voiced and ph not in VOWELS:
-        noise = np.random.randn(n)
-        b, a = sig.butter(4, 7500/(fs/2), btype='low')
-        noise = sig.filtfilt(b, a, noise)
-        if f1 > 50:
-            noise = apply_formants(fs, noise, f1, f2, f3)
-        out = noise * 0.35
-    else:
-        t = np.arange(n) / fs
-        glottal = np.sin(2 * np.pi * pitch * t)
-        if f1 > 50:
-            out = apply_formants(fs, glottal, f1, f2, f3)
-        else:
-            out = glottal * 0.5
-    
-    # Simple envelope
-    env = np.ones(n)
-    att = min(0.008, dur * 0.15)
-    rel = min(0.02, dur * 0.3)
-    att_s = int(att * fs)
-    rel_s = int(rel * fs)
-    if att_s > 0:
-        env[:att_s] = np.linspace(0, 1, att_s)
-    if rel_s > 0:
-        env[-rel_s:] = np.linspace(1, 0.1, rel_s)
-    out = out * env * 0.85
-    return np.tanh(out * 1.2) * 0.9
-
-def synthesize(specs):
-    fs = 48000
-    if not specs:
-        return np.zeros(0)
-    
-    # Calculate total duration with overlaps
-    total_dur = sum(s['duration'] for s in specs)
-    for i in range(len(specs) - 1):
-        total_dur -= min(specs[i].get('overlap', 0.0), specs[i]['duration'])
-    
-    total_samples = int(total_dur * fs) + 20
-    output = np.zeros(total_samples)
-    pos = 0
-    
-    for i, spec in enumerate(specs):
-        audio = synthesize_phoneme(fs, spec)
-        samples = len(audio)
-        
-        # Determine overlap with next phoneme
-        overlap = spec.get('overlap', 0.0) if i < len(specs) - 1 else 0.0
-        overlap_samples = min(int(overlap * fs), samples - 1, int(spec['duration'] * fs * 0.5))
-        
-        # Mix into output buffer (simple additive blending)
-        end = pos + samples
-        if end > len(output):
-            output = np.resize(output, end + 1000)
-        
-        output[pos:end] += audio
-        pos += (samples - overlap_samples)
-    
-    # Final processing
-    actual_len = min(pos, len(output))
-    audio = output[:actual_len]
-    audio = np.tanh(audio * 1.3) * 0.92
-    b, a = sig.butter(5, 5000/(fs/2), btype='low')
-    audio = sig.filtfilt(b, a, audio)
-    return audio
+                document.getElementById('statusBar').textContent = 'Loading FSB4 module...';
+                
+                // Load FSB4.py code
+                const fsb4Code = `
+${document.getElementById('fsb4py').textContent}
+                `;
+                
+                // Execute FSB4 module
+                pyodide.runPython(fsb4Code);
+                
+                // Import FSB4 module
+                fsb = pyodide.globals.get('fsb');
+                
+                document.getElementById('statusBar').textContent = 'Initializing voice registry...';
+                
+                // Initialize voices
+                await pyodide.runPython(`
+import json
+voices = list(fsb.VOICE_REGISTRY.list_voices().keys())
+print(json.dumps(voices))
                 `);
                 
-                // Hide loader, show app
-                document.getElementById('loading-screen').style.display = 'none';
-                document.getElementById('main-app').style.display = 'block';
-                updateStatus("✓ Ready • Enter phonemes and click 'Render Audio'");
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('app').classList.remove('hidden');
+                
+                // Initialize UI
+                await initializeUI();
+                
+                document.getElementById('statusBar').textContent = '✓ Ready! Parse spec → Save Bytecode → Render → Play';
                 
             } catch (error) {
-                console.error("Initialization failed:", error);
-                document.getElementById('loading-status').textContent = "❌ FAILED TO LOAD";
-                document.getElementById('loading-status').style.color = '#dc2626';
-                document.querySelector('.spinner').style.borderColor = '#fecaca';
-                document.querySelector('.spinner').style.borderTopColor = '#dc2626';
-                showError(`Initialization error: ${error.message || error.toString()}`);
+                console.error('Initialization error:', error);
+                document.getElementById('loading').innerHTML = 
+                    '<p class="error">Failed to load FSB4:</p><pre>' + error.toString() + '</pre>';
             }
         }
         
-        function updateStatus(msg) {
-            document.getElementById('status-bar').textContent = msg;
-        }
-        
-        function showError(msg) {
-            const container = document.getElementById('error-container');
-            container.innerHTML = `<div class="error">${msg}</div>`;
-            setTimeout(() => { container.innerHTML = ''; }, 12000);
-        }
-        
-        async function renderAudio() {
-            if (!pyodide) {
-                showError("Engine still loading. Please wait...");
-                return;
+        async function initializeUI() {
+            // Load phoneme library
+            const phonemeList = document.getElementById('phonemeList');
+            const byteToPhoneme = await pyodide.runPython(`
+import json
+print(json.dumps(fsb.BYTE_TO_PHONEME))
+            `);
+            
+            const sortedBytes = Object.keys(byteToPhoneme).sort((a, b) => parseInt(a) - parseInt(b));
+            
+            sortedBytes.forEach(byteVal => {
+                const phoneme = byteToPhoneme[byteVal];
+                const li = document.createElement('li');
+                li.textContent = `0x${parseInt(byteVal).toString(16).padStart(2, '0').toUpperCase()} ${phoneme}`;
+                li.onclick = () => addPhonemeToEditor(phoneme);
+                phonemeList.appendChild(li);
+            });
+            
+            // Load voices
+            const voices = await pyodide.runPython(`
+import json
+voices = list(fsb.VOICE_REGISTRY.list_voices().keys())
+print(json.dumps(voices))
+            `);
+            
+            const voiceCombo = document.getElementById('voiceCombo');
+            voices.forEach(voice => {
+                const option = document.createElement('option');
+                option.value = voice;
+                option.textContent = voice;
+                voiceCombo.appendChild(option);
+            });
+            
+            if (voices.includes('Default')) {
+                voiceCombo.value = 'Default';
             }
             
-            const text = document.getElementById('spec-editor').value.trim();
+            // Load reference text
+            document.getElementById('referenceText').textContent = `
+PHONEME REFERENCE GUIDE (OVRLP FORMAT)
+═══════════════════════════════════════════════════════════════════════════════
+NEW FORMAT:
+PHONEME  DUR    OVRLP  P0 [P1 P2 ...]
+• DUR   = Duration in seconds (0.01-2.0s)
+• OVRLP = Overlap duration into NEXT phoneme (0.0-0.5s)
+→ Enables smooth crossfading between phonemes
+→ Typical values: vowels 0.018-0.030s, consonants 0.008-0.015s
+
+VOWELS:      AH AE AA AO EH EY IH IY OW UH UW ER
+STOPS:       P T K B D G CH (unvoiced/voiced pairs)
+FRICATIVES:  F S SH TH (unvoiced)  V Z ZH DH (voiced)
+NASALS:      M N NG
+LIQUIDS:     L R
+GLIDES:      W Y HH JH
+
+EXAMPLE WORDS WITH OVRLP:
+hello    → HH 0.080 0.012 115.0
+          EH 0.120 0.025 115.0
+          L  0.110 0.015 115.0
+          AO 0.140 0.030 112.0
+          OW 0.180 0.000 105.0
+
+SPECIAL NOTES:
+• SIL = silence (0.19s default, OVRLP=0.0)
+• _FINAL suffix increases vowel duration by 40%
+• Pitch contours: space-separated Hz values (max 8 points)
+• OVRLP=0.0 means NO blending with next phoneme (use for final phonemes)
+
+TECHNICAL SPECS:
+• Sample rate: 48 kHz
+• Format: .PHX (54 bytes/phoneme with OVRLP) - parameterized bytecode
+• Legacy: .PHN (1 byte/phoneme) - simple phoneme stream
+• Formant synthesis with glottal pulse modeling + crossfade blending
+
+FSB4 ARCHITECTURE ENFORCEMENT:
+✓ Spec → Parse → Internal specs WITH OVERLAP (NO audio)
+✓ Specs → Save Bytecode (.phx) = FILE I/O ONLY (NO audio)
+✓ Render Audio = FILE SELECTOR → LOAD .phx → SYNTHESIZE → CACHE BUFFER
+✓ Play = CACHED BUFFER ONLY (ZERO synthesis during playback)
+
+DEBUG WORKFLOW:
+1. Edit spec in Phoneme Editor tab (include OVRLP values!)
+2. Click "Parse to Phonemes" to validate
+3. Click "→ Save Bytecode (.phx)" to generate VALID bytecode WITH OVERLAP
+4. Go to "Audio Rendering" tab → Click "Render Audio from .phx File"
+5. SELECT .phx file → Audio synthesized WITH crossfade blending → cached
+6. Use playback controls to hear cached audio (NO synthesis overhead)
+
+EXAMPLE PHONEME INPUT (FULL OVRLP FORMAT):
+SIL  0.190 0.000 0.0
+HH   0.080 0.012 115.0
+EH   0.120 0.025 115.0 118.0
+L    0.110 0.015 115.0
+AO   0.140 0.030 112.0 108.0
+OW   0.180 0.000 105.0 100.0
+SIL  0.280 0.000 0.0
+            `;
+            
+            // Setup event listeners
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById(btn.dataset.tab).classList.add('active');
+                });
+            });
+            
+            // Setup sliders
+            document.getElementById('speedSlider').addEventListener('input', (e) => {
+                document.getElementById('speedValue').textContent = e.target.value + '%';
+            });
+            
+            document.getElementById('formantSlider').addEventListener('input', (e) => {
+                document.getElementById('formantValue').textContent = e.target.value;
+            });
+        }
+        
+        function addPhonemeToEditor(phoneme) {
+            // Get default values based on phoneme type
+            pyodide.runPythonAsync(`
+import json
+vowels = ${JSON.stringify(Array.from(fsb.VOWELS))}
+is_vowel = '${phoneme}' in vowels
+default_dur = "0.140" if is_vowel else "0.120"
+default_overlap = "0.025" if is_vowel else "0.010"
+print(json.dumps({"dur": default_dur, "overlap": default_overlap}))
+            `).then(result => {
+                const current = document.getElementById('specEditor').value.trim();
+                const specLine = `${phoneme.padEnd(4)} ${result.dur} ${result.overlap} 115.0`;
+                
+                if (current) {
+                    document.getElementById('specEditor').value += '\n' + specLine;
+                } else {
+                    document.getElementById('specEditor').value = specLine;
+                }
+                
+                renderedAudio = null;
+                updateUIState();
+            });
+        }
+        
+        async function parseSpec() {
+            const text = document.getElementById('specEditor').value.trim();
             if (!text) {
-                showError("Please enter phoneme spec text first!");
+                setStatus('ERROR: No spec data!', true);
                 return;
             }
             
             try {
-                const btn = document.getElementById('render-btn');
-                btn.disabled = true;
-                btn.textContent = '.Rendering...';
-                updateStatus("Parsing phoneme spec...");
+                setStatus('Parsing spec...');
                 
-                // CRITICAL: Get callable function reference EACH TIME before calling
-                const parseFunc = pyodide.globals.get('parse_spec');
-                const specsProxy = parseFunc(text);  // Call immediately
-                parseFunc.destroy();  // Clean up PyProxy
+                // Check if it's English text or phoneme spec
+                const hasNumbers = /\d+\.\d+/.test(text);
                 
-                const specs = specsProxy.toJs({ depth: -1 });
-                specsProxy.destroy();
-                
-                if (!specs || specs.length < 2) {
-                    throw new Error("No valid phonemes parsed. Format: PHONEME DUR OVRLP P0");
+                if (!hasNumbers) {
+                    // English text - auto convert
+                    const phonemes = await pyodide.runPythonAsync(`
+import json
+text = ${JSON.stringify(text)}
+phonemes = fsb.text_to_phonemes(text)
+print(json.dumps(phonemes))
+                    `);
+                    
+                    const pitch = parseFloat(document.getElementById('pitchSpin').value);
+                    const specs = await pyodide.runPythonAsync(`
+import json
+phonemes = ${JSON.stringify(phonemes)}
+voice = fsb.VOICE_REGISTRY.current_voice
+specs = fsb.phonemes_to_spec(phonemes, voice, pitch_base=${pitch})
+print(json.dumps(specs, default=str))
+                    `);
+                    
+                    currentSpecs = specs;
+                } else {
+                    // Phoneme spec with OVRLP
+                    const specs = await pyodide.runPythonAsync(`
+import json
+text = ${JSON.stringify(text)}
+voice = fsb.VOICE_REGISTRY.current_voice
+specs = fsb.parse_phoneme_spec(text, voice)
+print(json.dumps(specs, default=str))
+                    `);
+                    
+                    if (!specs || specs.length <= 2) {
+                        setStatus('ERROR: No valid phonemes generated!', true);
+                        return;
+                    }
+                    
+                    currentSpecs = specs;
                 }
                 
-                updateStatus(`Synthesizing ${specs.length} phonemes with crossfade...`);
+                // Update editor with normalized format
+                const readable = await pyodide.runPythonAsync(`
+import json
+specs = ${JSON.stringify(currentSpecs)}
+text = fsb.specs_to_readable(specs)
+print(json.dumps(text))
+                `);
                 
-                // Get synthesize function and call immediately
-                const synthFunc = pyodide.globals.get('synthesize');
-                const audioProxy = synthFunc(specsProxy);  // Pass specs back to Python
-                synthFunc.destroy();
-                specsProxy.destroy();
+                document.getElementById('specEditor').value = readable;
                 
-                renderedAudio = audioProxy.toJs();  // Float32Array
-                audioProxy.destroy();
-                
-                // Enable controls
-                document.getElementById('play-btn').disabled = false;
-                document.getElementById('export-btn').disabled = false;
-                
-                const duration = renderedAudio.length / SAMPLE_RATE;
-                updateStatus(`✓ Rendered ${duration.toFixed(2)}s audio • Click PLAY to hear`);
-                btn.textContent = '🎨 Render Audio';
-                btn.disabled = false;
+                const totalDur = currentSpecs.reduce((sum, s) => sum + s.duration, 0);
+                setStatus(`✓ Parsed ${currentSpecs.length - 2} phonemes (${totalDur.toFixed(2)}s total, WITH OVERLAP). Save as .phx bytecode to render audio.`);
                 
             } catch (error) {
-                console.error("Render error:", error);
-                showError(`Render failed: ${error.message || error.toString()}`);
-                updateStatus("Render failed • See error above");
-                document.getElementById('render-btn').textContent = '🎨 Render Audio';
-                document.getElementById('render-btn').disabled = false;
+                console.error('Parse error:', error);
+                setStatus('ERROR parsing: ' + error.toString(), true);
             }
         }
         
-        function togglePlayback() {
-            if (isPlaying) {
-                stopPlayback();
-                return;
-            }
-            
-            if (!renderedAudio || renderedAudio.length === 0) {
-                showError("No audio to play. Click 'Render Audio' first!");
-                return;
-            }
-            
-            playAudio();
-        }
-        
-        function playAudio() {
-            try {
-                if (!audioContext) {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                } else if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                // Stop existing playback
-                if (sourceNode) {
-                    try { sourceNode.stop(); } catch (e) {}
-                }
-                
-                // Create audio buffer
-                audioBuffer = audioContext.createBuffer(1, renderedAudio.length, SAMPLE_RATE);
-                const channelData = audioBuffer.getChannelData(0);
-                for (let i = 0; i < renderedAudio.length; i++) {
-                    channelData[i] = renderedAudio[i];
-                }
-                
-                // Play
-                sourceNode = audioContext.createBufferSource();
-                sourceNode.buffer = audioBuffer;
-                sourceNode.connect(audioContext.destination);
-                sourceNode.start(0);
-                
-                isPlaying = true;
-                document.getElementById('play-btn').textContent = '■ Stop';
-                document.getElementById('play-btn').classList.add('stop');
-                updateStatus("Playing audio with crossfade blending...");
-                
-                sourceNode.onended = () => {
-                    isPlaying = false;
-                    document.getElementById('play-btn').textContent = '▶ Play';
-                    document.getElementById('play-btn').classList.remove('stop');
-                    updateStatus("Playback complete");
-                };
-                
-            } catch (error) {
-                console.error("Playback error:", error);
-                showError(`Playback failed: ${error.message}`);
-                updateStatus(`Playback error: ${error.message}`);
-            }
-        }
-        
-        function stopPlayback() {
-            if (sourceNode) {
-                try { sourceNode.stop(); } catch (e) {}
-            }
-            isPlaying = false;
-            document.getElementById('play-btn').textContent = '▶ Play';
-            document.getElementById('play-btn').classList.remove('stop');
-            updateStatus("Playback stopped");
-        }
-        
-        function exportWAV() {
-            if (!renderedAudio || renderedAudio.length === 0) {
-                showError("No audio to export. Render audio first!");
+        async function saveBytecode() {
+            if (currentSpecs.length === 0) {
+                alert('Parse spec to phonemes first!');
                 return;
             }
             
             try {
-                const numSamples = renderedAudio.length;
-                const buffer = new ArrayBuffer(44 + numSamples * 2);
-                const view = new DataView(buffer);
+                // Create virtual file in Pyodide
+                await pyodide.runPythonAsync(`
+specs = ${JSON.stringify(currentSpecs)}
+fsb.save_parameterized_phonemes('/tmp/output.phx', specs)
+                `);
                 
-                // RIFF header
-                writeString(view, 0, 'RIFF');
-                view.setUint32(4, 36 + numSamples * 2, true);
-                writeString(view, 8, 'WAVE');
-                writeString(view, 12, 'fmt ');
-                view.setUint32(16, 16, true);
-                view.setUint16(20, 1, true);
-                view.setUint16(22, 1, true);
-                view.setUint32(24, SAMPLE_RATE, true);
-                view.setUint32(28, SAMPLE_RATE * 2, true);
-                view.setUint16(32, 2, true);
-                view.setUint16(34, 16, true);
-                writeString(view, 36, 'data');
-                view.setUint32(40, numSamples * 2, true);
-                
-                // PCM data
-                const int16 = new Int16Array(buffer, 44);
-                for (let i = 0; i < numSamples; i++) {
-                    const val = Math.max(-1, Math.min(1, renderedAudio[i]));
-                    int16[i] = val < 0 ? val * 32768 : val * 32767;
-                }
-                
-                // Download
-                const blob = new Blob([buffer], { type: 'audio/wav' });
+                // Read the file and trigger download
+                const fileData = pyodide.FS.readFile('/tmp/output.phx');
+                const blob = new Blob([fileData], { type: 'application/octet-stream' });
                 const url = URL.createObjectURL(blob);
+                
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `fsb4_output_${Date.now()}.wav`;
+                a.download = 'output.phx';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 
-                const duration = numSamples / SAMPLE_RATE;
-                updateStatus(`✓ Exported ${duration.toFixed(2)}s WAV file`);
+                setStatus('✓ Bytecode SAVED (WITH OVERLAP DATA - FILE I/O ONLY)');
                 
             } catch (error) {
-                console.error("Export error:", error);
-                showError(`Export failed: ${error.message}`);
+                console.error('Save error:', error);
+                setStatus('ERROR saving PHX: ' + error.toString(), true);
+                alert('Failed to save PHX file:\n' + error.toString());
             }
+        }
+        
+        async function loadBytecode() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.phx';
+            
+            input.onchange = async (e) => {
+                try {
+                    const file = e.target.files[0];
+                    const arrayBuffer = await file.arrayBuffer();
+                    
+                    // Write file to Pyodide FS
+                    pyodide.FS.writeFile('/tmp/input.phx', new Uint8Array(arrayBuffer));
+                    
+                    // Load specs
+                    const specs = await pyodide.runPythonAsync(`
+import json
+specs = fsb.load_parameterized_phonemes('/tmp/input.phx')
+print(json.dumps(specs, default=str))
+                    `);
+                    
+                    currentSpecs = specs;
+                    
+                    // Update editor
+                    const readable = await pyodide.runPythonAsync(`
+import json
+specs = ${JSON.stringify(specs)}
+text = fsb.specs_to_readable(specs)
+print(json.dumps(text))
+                    `);
+                    
+                    document.getElementById('specEditor').value = readable;
+                    
+                    const totalDur = specs.reduce((sum, s) => sum + s.duration, 0);
+                    setStatus(`✓ Bytecode LOADED (${specs.length} phonemes, ${totalDur.toFixed(2)}s, WITH OVERLAP) - FILE I/O ONLY`);
+                    
+                } catch (error) {
+                    console.error('Load error:', error);
+                    setStatus('ERROR loading PHX: ' + error.toString(), true);
+                    alert('Failed to load PHX file:\n' + error.toString());
+                }
+            };
+            
+            input.click();
+        }
+        
+        async function renderAudioFromFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.phx';
+            
+            input.onchange = async (e) => {
+                try {
+                    const file = e.target.files[0];
+                    if (!file) {
+                        setStatus('Render cancelled - no file selected');
+                        return;
+                    }
+                    
+                    setStatus(`.Loading bytecode from: ${file.name}`);
+                    
+                    const arrayBuffer = await file.arrayBuffer();
+                    pyodide.FS.writeFile('/tmp/render.phx', new Uint8Array(arrayBuffer));
+                    
+                    // Load specs
+                    const specs = await pyodide.runPythonAsync(`
+import json
+specs = fsb.load_parameterized_phonemes('/tmp/render.phx')
+print(json.dumps(specs, default=str))
+                    `);
+                    
+                    currentSpecs = specs;
+                    setStatus('.Synthesizing audio with crossfade blending...');
+                    
+                    // Synthesize audio
+                    const audioArray = await pyodide.runPythonAsync(`
+import numpy as np
+import json
+
+specs = ${JSON.stringify(specs)}
+synth = fsb.FormantSynthesizer(fsb.VOICE_REGISTRY.current_voice, sample_rate=fsb.smp)
+audio = synth.synthesize_from_specs(specs)
+
+# Apply speed adjustment
+speed_factor = ${document.getElementById('speedSlider').value} / 100.0
+if speed_factor != 1.0:
+    from scipy import signal
+    import numpy as np
+    original_length = len(audio)
+    new_length = int(original_length / speed_factor)
+    x_old = np.linspace(0, 1, original_length)
+    x_new = np.linspace(0, 1, new_length)
+    audio = np.interp(x_new, x_old, audio)
+
+# Convert to list for JSON
+audio_list = audio.tolist()
+print(json.dumps({"audio": audio_list, "sample_rate": fsb.smp}))
+                    `);
+                    
+                    // Cache the audio
+                    renderedAudio = audioArray.audio;
+                    
+                    // Create AudioBuffer for playback
+                    if (!audioContext) {
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    }
+                    
+                    const buffer = audioContext.createBuffer(
+                        1, 
+                        renderedAudio.length, 
+                        audioArray.sample_rate
+                    );
+                    
+                    const channelData = buffer.getChannelData(0);
+                    for (let i = 0; i < renderedAudio.length; i++) {
+                        channelData[i] = renderedAudio[i];
+                    }
+                    
+                    audioBuffer = buffer;
+                    
+                    const duration = renderedAudio.length / audioArray.sample_rate;
+                    setStatus(`✓ Audio RENDERED with crossfade blending (${duration.toFixed(2)}s). Click PLAY to hear cached buffer.`);
+                    updateUIState();
+                    
+                } catch (error) {
+                    console.error('Render error:', error);
+                    renderedAudio = null;
+                    setStatus('Render error: ' + error.toString(), true);
+                    alert('Failed to render audio from bytecode:\n' + error.toString());
+                }
+            };
+            
+            input.click();
+        }
+        
+        function playCachedAudio() {
+            if (!renderedAudio || !audioBuffer) {
+                alert(`No Rendered Audio
+
+Render audio first using 'Render Audio from .phx File' button!
+
+Workflow:
+1. Save or obtain a valid .phx bytecode file WITH OVERLAP DATA
+2. Click 'Render Audio from .phx File' in Audio Rendering tab
+3. SELECT the .phx file in the file dialog
+4. THEN click PLAY`);
+                setStatus('ERROR: Render audio before playback', true);
+                return;
+            }
+            
+            if (isPlaying) {
+                stopPlayback();
+            }
+            
+            try {
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+                
+                if (audioSource) {
+                    audioSource.stop();
+                }
+                
+                audioSource = audioContext.createBufferSource();
+                audioSource.buffer = audioBuffer;
+                
+                // Apply gain
+                const gainNode = audioContext.createGain();
+                gainNode.gain.value = 0.8;
+                
+                audioSource.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                audioSource.onended = () => {
+                    isPlaying = false;
+                    updateUIState();
+                    document.getElementById('progressBar').style.width = '0%';
+                    setStatus('Playback complete (cached buffer with crossfade blending)');
+                };
+                
+                startTime = audioContext.currentTime;
+                startOffset = 0;
+                audioSource.start(0, startOffset);
+                
+                isPlaying = true;
+                updateUIState();
+                setStatus('Playing CACHED audio buffer with crossfade blending (ZERO synthesis overhead)...');
+                
+                // Update progress bar
+                updateProgress();
+                
+            } catch (error) {
+                console.error('Playback error:', error);
+                setStatus('Playback error: ' + error.toString(), true);
+            }
+        }
+        
+        function updateProgress() {
+            if (!isPlaying || !audioSource) return;
+            
+            const currentTime = audioContext.currentTime - startTime + startOffset;
+            const duration = audioBuffer.duration;
+            const progress = Math.min(100, (currentTime / duration) * 100);
+            
+            document.getElementById('progressBar').style.width = progress + '%';
+            
+            if (progress < 100) {
+                requestAnimationFrame(updateProgress);
+            }
+        }
+        
+        function stopPlayback() {
+            if (audioSource) {
+                try {
+                    audioSource.stop();
+                } catch (e) {
+                    // Already stopped
+                }
+            }
+            
+            isPlaying = false;
+            updateUIState();
+            document.getElementById('progressBar').style.width = '0%';
+            setStatus('Playback stopped');
+        }
+        
+        function updateUIState() {
+            const playBtn = document.getElementById('playBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            playBtn.disabled = !(renderedAudio && !isPlaying);
+            stopBtn.disabled = !isPlaying;
+        }
+        
+        function setStatus(message, isError = false) {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.textContent = message;
+            statusBar.className = 'status-bar ' + (isError ? 'error' : '');
+        }
+        
+        // File operations
+        function loadSpec() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt';
+            
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    document.getElementById('specEditor').value = event.target.result;
+                    renderedAudio = null;
+                    updateUIState();
+                    setStatus(`Loaded spec from: ${file.name}`);
+                };
+                
+                reader.readAsText(file);
+            };
+            
+            input.click();
+        }
+        
+        function saveSpec() {
+            const text = document.getElementById('specEditor').value;
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'phoneme_spec.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            setStatus('Saved spec to file');
+        }
+        
+        function clearSpec() {
+            document.getElementById('specEditor').value = '';
+            renderedAudio = null;
+            updateUIState();
+        }
+        
+        async function changeVoice() {
+            const voiceName = document.getElementById('voiceCombo').value;
+            try {
+                await pyodide.runPythonAsync(`
+fsb.VOICE_REGISTRY.set_current_voice(${JSON.stringify(voiceName)})
+                `);
+                setStatus(`Voice changed to: ${voiceName}`);
+                renderedAudio = null;
+                updateUIState();
+            } catch (error) {
+                console.error('Voice change error:', error);
+            }
+        }
+        
+        async function loadPhnFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.phn';
+            
+            input.onchange = async (e) => {
+                try {
+                    const file = e.target.files[0];
+                    const arrayBuffer = await file.arrayBuffer();
+                    const bytes = new Uint8Array(arrayBuffer);
+                    
+                    // Convert to phonemes
+                    const phonemes = [];
+                    for (let byte of bytes) {
+                        if (byte in fsb.BYTE_TO_PHONEME) {
+                            phonemes.push(fsb.BYTE_TO_PHONEME[byte]);
+                        }
+                    }
+                    
+                    if (phonemes.length === 0) {
+                        setStatus('ERROR: No valid phonemes in PHN file!', true);
+                        return;
+                    }
+                    
+                    // Convert to specs with default overlap
+                    const specs = await pyodide.runPythonAsync(`
+import json
+phonemes = ${JSON.stringify(phonemes)}
+voice = fsb.VOICE_REGISTRY.current_voice
+specs = []
+for i, ph in enumerate(phonemes):
+    ph_data = voice.get_phoneme_data(ph)
+    duration = ph_data.get('length', 0.14)
+    overlap = 0.018 if ph in fsb.VOWELS and i < len(phonemes) - 1 else 0.008
+    pitch = 115.0 if ph_data.get('voiced', False) and ph != 'SIL' else 0.0
+    f1 = ph_data.get('f1', 0.0) or 0.0
+    f2 = ph_data.get('f2', 0.0) or 0.0
+    f3 = ph_data.get('f3', 0.0) or 0.0
+    specs.append({
+        'phoneme': ph,
+        'duration': duration,
+        'overlap': overlap,
+        'pitch_contour': [pitch],
+        'num_pitch_points': 1,
+        'f1': f1,
+        'f2': f2,
+        'f3': f3,
+        'voiced': ph not in {'SIL','B','D','G','P','T','K','F','S','SH','TH','HH','CH'}
+    })
+print(json.dumps(specs, default=str))
+                    `);
+                    
+                    currentSpecs = specs;
+                    renderedAudio = null;
+                    updateUIState();
+                    
+                    const readable = await pyodide.runPythonAsync(`
+import json
+specs = ${JSON.stringify(specs)}
+text = fsb.specs_to_readable(specs)
+print(json.dumps(text))
+                    `);
+                    
+                    document.getElementById('specEditor').value = readable;
+                    setStatus(`Loaded ${phonemes.length} legacy phonemes → CONVERTED TO OVRLP FORMAT (NOT valid .phx bytecode)`);
+                    
+                } catch (error) {
+                    console.error('PHN load error:', error);
+                    setStatus('ERROR loading PHN: ' + error.toString(), true);
+                }
+            };
+            
+            input.click();
+        }
+        
+        function exportWav() {
+            if (!renderedAudio) {
+                alert('Render audio before exporting WAV!');
+                return;
+            }
+            
+            try {
+                // Convert audio to WAV format
+                const sampleRate = 48000;
+                const audioData = new Float32Array(renderedAudio);
+                
+                // Create WAV file
+                const wavBlob = createWavBlob(audioData, sampleRate);
+                
+                const url = URL.createObjectURL(wavBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'output.wav';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                const sizeKb = wavBlob.size / 1024;
+                const duration = renderedAudio.length / sampleRate;
+                setStatus(`✓ WAV exported (${sizeKb.toFixed(1)} KB, ${duration.toFixed(2)}s with crossfade)`);
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                setStatus('ERROR exporting WAV: ' + error.toString(), true);
+                alert('Failed to export WAV file:\n' + error.toString());
+            }
+        }
+        
+        function createWavBlob(audioData, sampleRate) {
+            const numChannels = 1;
+            const bytesPerSample = 2; // 16-bit
+            
+            // Clip and convert to 16-bit PCM
+            const buffer = new ArrayBuffer(44 + audioData.length * bytesPerSample);
+            const view = new DataView(buffer);
+            
+            // Write WAV header
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + audioData.length * bytesPerSample, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
+            view.setUint16(32, numChannels * bytesPerSample, true);
+            view.setUint16(34, bytesPerSample * 8, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, audioData.length * bytesPerSample, true);
+            
+            // Write audio data
+            const volume = 32767;
+            for (let i = 0; i < audioData.length; i++) {
+                const val = Math.max(-1, Math.min(1, audioData[i]));
+                view.setInt16(44 + i * bytesPerSample, val * volume, true);
+            }
+            
+            return new Blob([view], { type: 'audio/wav' });
         }
         
         function writeString(view, offset, string) {
@@ -449,8 +1210,13 @@ def synthesize(specs):
             }
         }
         
-        // Start initialization immediately
-        initPyodide();
+        // Start initialization
+        main();
+    </script>
+    
+    <!-- Hidden FSB4.py code -->
+    <script id="fsb4py" type="text/plain">
+${document.getElementById('fsb4py-content').textContent}
     </script>
 </body>
 </html>
