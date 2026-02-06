@@ -255,7 +255,7 @@ D        0.068  0.008  0.0</textarea>
         </div>
     </div>
 
-    <!-- Hidden script containing FSB4.py source with full spec support -->
+    <!-- Hidden script containing FSB4.py source with CORRECT mode detection -->
     <script type="text/python" id="fsb4-source">
 import numpy as np
 import scipy.signal as sig
@@ -720,26 +720,42 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
         wf.writeframes(audio_int16.tobytes())
     return buffer.getvalue()
 
-# Unified synthesis function with mode detection
+# CORRECTED mode detection - spec mode ONLY when tokens 2+ are numeric
+def is_spec_format(text: str) -> bool:
+    lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith('#')]
+    if not lines:
+        return False
+    parts = lines[0].split()
+    if len(parts) < 4:
+        return False
+    # Check if parts[1], parts[2], parts[3] are numeric (duration, overlap, pitch)
+    try:
+        float(parts[1])
+        float(parts[2])
+        float(parts[3])
+        return True
+    except ValueError:
+        return False
+
+# Unified synthesis function with CORRECT mode detection
 def synthesize_text(text: str):
     text = text.strip()
     if not text:
         return generate_wav_bytes(np.zeros(int(0.5 * smp))), "empty"
     
-    # Check if this is spec format (contains numbers after phoneme)
-    lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith('#')]
-    if lines and len(lines[0].split()) >= 4:
-        # Parse as spec format
+    # FIRST check for spec format (requires numeric duration/overlap/pitch)
+    if is_spec_format(text):
         specs = parse_phoneme_spec(text, VOICE_REGISTRY.current_voice)
         mode = "spec"
     else:
-        # Auto-detect word vs phoneme
+        # Then check for phoneme mode (all tokens are valid phonemes)
         tokens = text.upper().split()
         if tokens and all(t in VALID_PHONEMES for t in tokens):
             phonemes = parse_phoneme_input(text)
             specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
             mode = "phoneme"
         else:
+            # Otherwise word mode
             phonemes = text_to_phonemes(text)
             specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
             mode = "word"
@@ -751,7 +767,7 @@ def synthesize_text(text: str):
 
     <script>
         // ======================
-        // JAVASCRIPT PYODIDE INTEGRATION WITH THREE-MODE SUPPORT
+        // JAVASCRIPT PYODIDE INTEGRATION WITH CORRECT MODE DETECTION
         // ======================
         let pyodide;
         let synthesizeFunc;
