@@ -606,7 +606,7 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
             const voiceName = document.getElementById("voiceSelect").value;
 
             try {
-                const result = pyodide.runPythonSync(`
+                const result = pyodide.runPython(`
                     import io
                     import wave
                     import base64
@@ -639,7 +639,7 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
                 audio.play();
                 
                 // Update phoneme display
-                const readableSpecs = pyodide.runPythonSync(`
+                const readableSpecs = pyodide.runPython(`
                     specs_to_readable(specs)
                 `);
                 document.getElementById("phonemeInput").value = readableSpecs;
@@ -650,7 +650,7 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
         }
         
         function savePhonemes() {
-            const specs = pyodide.runPythonSync(`
+            const specs = pyodide.runPython(`
                 import io
                 import base64
                 
@@ -688,7 +688,7 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
                 const base64Data = btoa(String.fromCharCode.apply(null, bytes));
                 
                 try {
-                    const specs = pyodide.runPythonSync(`
+                    const specs = pyodide.runPython(`
                         import io
                         import base64
                         
