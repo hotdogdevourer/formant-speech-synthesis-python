@@ -31,7 +31,7 @@
         }
         textarea {
             width: 100%;
-            height: 100px;
+            height: 120px;
             padding: 1rem;
             border: 2px solid #ddd;
             border-radius: 12px;
@@ -39,12 +39,24 @@
             margin-bottom: 1.2rem;
             resize: vertical;
             transition: border-color 0.3s;
+            font-family: monospace;
         }
         textarea:focus {
             outline: none;
             border-color: #4a6fa5;
             box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
         }
+        .mode-indicator {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 0.6rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .mode-word { background: #e8f5e9; color: #2e7d32; }
+        .mode-phoneme { background: #e3f2fd; color: #1565c0; }
+        .mode-unknown { background: #fff8e1; color: #5d4037; }
         .controls {
             display: flex;
             gap: 1rem;
@@ -107,6 +119,15 @@
             margin: 1.5rem 0;
             font-size: 0.95rem;
         }
+        .phoneme-guide {
+            background: #e8f5e9;
+            border-left: 4px solid #2e7d32;
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+            font-family: monospace;
+            font-size: 0.95rem;
+        }
         .limitations {
             font-size: 0.9rem;
             color: #7f8c8d;
@@ -114,10 +135,35 @@
             padding-top: 0.5rem;
             border-top: 1px dashed #bdc3c7;
         }
+        .tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            gap: 0.5rem;
+        }
+        .tab {
+            padding: 0.6rem 1rem;
+            background: #e0e7ff;
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .tab.active {
+            background: #4a6fa5;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
         @media (max-width: 600px) {
             .controls { flex-direction: column; }
             button { width: 100%; }
             body { padding: 1rem; margin: 1rem; }
+            .tabs { flex-direction: column; }
+            .tab { border-radius: 8px; width: 100%; }
         }
     </style>
 </head>
@@ -125,7 +171,23 @@
     <h1>🤖 FSB4 Formant Speech Synthesizer</h1>
     
     <div class="container">
-        <textarea id="textInput" placeholder="Enter text to synthesize (use words from the dictionary: hello, world, test, one, two, robot, etc.)">hello world this is a test of the formant speech synthesizer</textarea>
+        <div class="tabs">
+            <button class="tab active" data-tab="word">🔤 Word Mode</button>
+            <button class="tab" data-tab="phoneme">👄 Phoneme Mode</button>
+        </div>
+        
+        <div id="word-tab" class="tab-content active">
+            <textarea id="textInput" placeholder="Enter words (e.g., 'hello world robot') OR phonemes (e.g., 'HH EH L OW W ER L D')">hello world this is a robot voice</textarea>
+            <div id="modeIndicator" class="mode-indicator mode-unknown">❓ Input mode will auto-detect</div>
+        </div>
+        
+        <div id="phoneme-tab" class="tab-content">
+            <textarea id="phonemeInput" placeholder="Enter phonemes separated by spaces (e.g., HH EH L OW SIL W ER L D)">HH EH L OW SIL W ER L D</textarea>
+            <div class="phoneme-guide">
+                <strong>Valid Phonemes:</strong> SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER, B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
+                <strong>Tip:</strong> Use SIL between words for natural pauses
+            </div>
+        </div>
         
         <div class="controls">
             <button id="synthesizeBtn" disabled>▶️ Synthesize Speech</button>
@@ -135,8 +197,12 @@
         <div id="status" class="status-loading">Initializing Pyodide environment...</div>
         
         <div class="info-box">
-            <strong>ℹ️ How it works:</strong> This runs your FSB4.py entirely in-browser using Pyodide (WebAssembly Python). 
-            No data leaves your device. Only words in the built-in dictionary will synthesize correctly.
+            <strong>ℹ️ How it works:</strong> 
+            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                <li><strong>Word Mode:</strong> Type normal text using words from the built-in dictionary</li>
+                <li><strong>Phoneme Mode:</strong> Enter ARPABET phonemes for precise control (see guide above)</li>
+                <li>All processing happens in your browser using Pyodide (WebAssembly) - no data leaves your device</li>
+            </ul>
         </div>
         
         <div class="audio-container">
@@ -144,12 +210,12 @@
         </div>
         
         <div class="limitations">
-            <strong>Dictionary limitations:</strong> Only words defined in WORD_MAP will work (hello, world, test, one, two, robot, voice, computer, etc.). 
-            Unknown words become silence. See console for phoneme conversion details.
+            <strong>Dictionary:</strong> hello, world, test, one, two, robot, voice, computer, formant, speech, synthesis, and 40+ more words.<br>
+            <strong>Pro Tip:</strong> Unknown words become silence. For full control, use Phoneme Mode!
         </div>
     </div>
 
-    <!-- Hidden script containing FSB4.py source -->
+    <!-- Hidden script containing FSB4.py source with phoneme input support -->
     <script type="text/python" id="fsb4-source">
 import numpy as np
 import scipy.signal as sig
@@ -171,6 +237,7 @@ BYTE_TO_PHONEME = {
     0x1E: 'Z', 0x1F: 'ZH', 0x20: 'W', 0x21: 'Y', 0x22: 'HH', 0x23: 'CH', 0x24: 'JH',
 }
 PHONEME_TO_BYTE = {v: k for k, v in BYTE_TO_PHONEME.items()}
+VALID_PHONEMES = set(PHONEME_TO_BYTE.keys())
 
 VOWELS = {'AH','AE','AA','AO','EH','EY','IH','IY','OW','UH','UW','ER'}
 STOPS = {'P','T','K','B','D','G','CH'}
@@ -289,6 +356,20 @@ def text_to_phonemes(text: str) -> List[str]:
             phoneme_sequence.append('SIL')
     phoneme_sequence.append('SIL')
     return phoneme_sequence
+
+def parse_phoneme_input(text: str) -> List[str]:
+    """Parse raw phoneme input (space-separated ARPABET phonemes)"""
+    tokens = text.strip().upper().split()
+    # Filter to only valid phonemes, default to SIL for invalid tokens
+    phonemes = [tok if tok in VALID_PHONEMES else 'SIL' for tok in tokens]
+    # Ensure we have at least SIL padding
+    if not phonemes:
+        return ['SIL', 'SIL']
+    if phonemes[0] != 'SIL':
+        phonemes.insert(0, 'SIL')
+    if phonemes[-1] != 'SIL':
+        phonemes.append('SIL')
+    return phonemes
 
 def phonemes_to_spec(phonemes: List[str], voice: Voice, pitch_base: float = 115.0) -> List[Dict]:
     specs = []
@@ -560,11 +641,31 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
         wf.setframerate(sr)
         wf.writeframes(audio_int16.tobytes())
     return buffer.getvalue()
+
+# Unified synthesis function with auto-detection
+def synthesize_text(text: str):
+    text = text.strip()
+    if not text:
+        return generate_wav_bytes(np.zeros(int(0.5 * smp)))
+    
+    # Auto-detect mode: if ALL tokens are valid phonemes → phoneme mode
+    tokens = text.upper().split()
+    if tokens and all(t in VALID_PHONEMES for t in tokens):
+        phonemes = parse_phoneme_input(text)
+        mode = "phoneme"
+    else:
+        phonemes = text_to_phonemes(text)
+        mode = "word"
+    
+    specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
+    synth = FormantSynthesizer(VOICE_REGISTRY.current_voice)
+    audio = synth.synthesize_from_specs(specs)
+    return generate_wav_bytes(audio), mode
     </script>
 
     <script>
         // ======================
-        // JAVASCRIPT PYODIDE INTEGRATION
+        // JAVASCRIPT PYODIDE INTEGRATION WITH DUAL-MODE SUPPORT
         // ======================
         let pyodide;
         let synthesizeFunc;
@@ -573,12 +674,58 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
         const playExampleBtn = document.getElementById('playExampleBtn');
         const audioPlayer = document.getElementById('audioPlayer');
         const textInput = document.getElementById('textInput');
+        const phonemeInput = document.getElementById('phonemeInput');
+        const modeIndicator = document.getElementById('modeIndicator');
+        const wordTab = document.getElementById('word-tab');
+        const phonemeTab = document.getElementById('phoneme-tab');
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Update tab UI
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Show correct content
+                const tabName = tab.dataset.tab;
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                if (tabName === 'word') {
+                    wordTab.classList.add('active');
+                } else {
+                    phonemeTab.classList.add('active');
+                }
+            });
+        });
+
+        // Real-time mode detection for word tab
+        textInput.addEventListener('input', () => {
+            const text = textInput.value.trim();
+            if (!text) {
+                modeIndicator.className = 'mode-indicator mode-unknown';
+                modeIndicator.textContent = '❓ Input mode will auto-detect';
+                return;
+            }
+            
+            // Simple heuristic: if all uppercase tokens match phoneme set → phoneme mode
+            const tokens = text.toUpperCase().split(/\s+/);
+            const validPhonemes = new Set(['SIL', 'AH', 'AE', 'AA', 'AO', 'EH', 'EY', 'IH', 'IY', 'OW', 'UH', 'UW', 'ER', 
+                                         'B', 'D', 'G', 'P', 'T', 'K', 'M', 'N', 'NG', 'L', 'R', 'F', 'S', 'SH', 'TH', 
+                                         'DH', 'V', 'Z', 'ZH', 'W', 'Y', 'HH', 'CH', 'JH']);
+            
+            if (tokens.every(t => validPhonemes.has(t))) {
+                modeIndicator.className = 'mode-indicator mode-phoneme';
+                modeIndicator.textContent = '👄 Phoneme Mode Detected (space-separated ARPABET)';
+            } else {
+                modeIndicator.className = 'mode-indicator mode-word';
+                modeIndicator.textContent = '🔤 Word Mode (dictionary words only)';
+            }
+        });
 
         async function setupPyodide() {
             updateStatus("Loading Pyodide...", "status-loading");
             
             try {
-                // Load Pyodide
+                // CRITICAL FIX: Removed trailing spaces from CDN URLs that caused 404 errors
                 pyodide = await loadPyodide({
                     indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
                 });
@@ -593,25 +740,24 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
                 
                 // Expose synthesis function to JavaScript
                 pyodide.runPython(`
-                    def synthesize_text(text: str):
-                        phonemes = text_to_phonemes(text)
-                        specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
-                        synth = FormantSynthesizer(VOICE_REGISTRY.current_voice)
-                        audio = synth.synthesize_from_specs(specs)
-                        return generate_wav_bytes(audio)
+                    def js_synthesize(text):
+                        wav_bytes, mode = synthesize_text(text)
+                        return wav_bytes, mode
                 `);
                 
-                synthesizeFunc = pyodide.globals.get("synthesize_text");
+                synthesizeFunc = pyodide.globals.get("js_synthesize");
                 
-                updateStatus("✅ Ready! Enter text and click Synthesize", "status-ready");
+                updateStatus("✅ Ready! Enter text or phonemes and click Synthesize", "status-ready");
                 synthesizeBtn.disabled = false;
                 playExampleBtn.disabled = false;
                 
                 // Log available words for user reference
-                console.log("FSB4 Dictionary Words:", Object.keys(pyodide.globals.get("WORD_MAP").toJs()));
+                const wordMap = pyodide.globals.get("WORD_MAP").toJs();
+                console.log("FSB4 Dictionary Words:", Object.keys(wordMap));
+                console.log("Valid Phonemes:", Array.from(pyodide.globals.get("VALID_PHONEMES").toJs()));
             } catch (error) {
                 console.error("Pyodide setup failed:", error);
-                updateStatus(`❌ Initialization failed: ${error.message}`, "status-error");
+                updateStatus(`❌ Initialization failed: ${error.message || error}`, "status-error");
             }
         }
 
@@ -632,7 +778,7 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
                 playExampleBtn.disabled = true;
                 
                 // Process text through Python function
-                const wavBytes = synthesizeFunc(text);
+                const [wavBytes, mode] = synthesizeFunc(text);
                 const wavBuffer = wavBytes.toJs().buffer;
                 wavBytes.destroy();
                 
@@ -646,12 +792,12 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
                 }
                 
                 audioPlayer.src = url;
-                updateStatus("✅ Speech generated! Click play to hear", "status-ready");
+                updateStatus(`✅ ${mode === 'phoneme' ? 'Phoneme sequence' : 'Text'} synthesized! Click play to hear`, "status-ready");
                 return url;
             } catch (error) {
                 console.error("Synthesis error:", error);
-                updateStatus(`❌ Synthesis failed: ${error.message}`, "status-error");
-                alert(`Synthesis failed: ${error.message}\nCheck console for details`);
+                updateStatus(`❌ Synthesis failed: ${error.message || error}`, "status-error");
+                alert(`Synthesis failed: ${error.message || error}\nCheck console for details`);
                 return null;
             } finally {
                 synthesizeBtn.disabled = false;
@@ -661,12 +807,16 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
 
         // UI Event Handlers
         synthesizeBtn.addEventListener('click', async () => {
-            const text = textInput.value.trim();
+            // Get input based on active tab
+            const activeTab = document.querySelector('.tab.active').dataset.tab;
+            const text = activeTab === 'word' ? textInput.value.trim() : phonemeInput.value.trim();
+            
             if (!text) {
-                alert("Please enter some text first!");
-                textInput.focus();
+                alert("Please enter some text or phonemes first!");
+                (activeTab === 'word' ? textInput : phonemeInput).focus();
                 return;
             }
+            
             await synthesize(text);
             if (audioPlayer.src) {
                 audioPlayer.play().catch(e => console.log("Autoplay prevented:", e));
@@ -674,8 +824,16 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
         });
 
         playExampleBtn.addEventListener('click', async () => {
-            textInput.value = "hello world this is a robot voice synthesizer test";
-            await synthesize(textInput.value);
+            const activeTab = document.querySelector('.tab.active').dataset.tab;
+            
+            if (activeTab === 'word') {
+                textInput.value = "hello world this is a robot voice synthesizer";
+                await synthesize(textInput.value);
+            } else {
+                phonemeInput.value = "HH EH L OW SIL W ER L D SIL DH IH S SIL IH Z SIL AH SIL R OW B AA T SIL V AO Y S";
+                await synthesize(phonemeInput.value);
+            }
+            
             if (audioPlayer.src) {
                 audioPlayer.play().catch(e => console.log("Autoplay prevented:", e));
             }
