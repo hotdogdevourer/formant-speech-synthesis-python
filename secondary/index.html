@@ -230,27 +230,26 @@
       </div>
     </div>
     <div id="spec-tab" class="tab-content">
-      <textarea id="specInput" placeholder="Enter spec format: PHON DUR RISE FALL"># Hello World with pitch variation
-HH       0.150  0.010  120.0
+      <textarea id="specInput" placeholder="Enter spec format: PHON DUR OVERLAP PITCH0 PITCH1..."># PHONEME  DUR    OVRLP  PITCH_CONTOUR
+HH       0.150  0.010  115.0
 EH       0.140  0.018  115.0
 L        0.120  0.008  115.0
-OW       0.180  0.018  115.0 105.0
-SIL      0.120  0.008  0.0
-W        0.120  0.008  110.0
+OW       0.160  0.018  115.0 110.0
+SIL      0.190  0.008  0.0
+W        0.120  0.008  115.0
 ER       0.140  0.018  115.0
 L        0.120  0.008  115.0
 D        0.068  0.008  0.0</textarea>
-      <div class="spec-guide">
-        <strong>Spec Format:</strong> PHON DURATION RISE [FALL]<br>
-        Example: <code>OW 0.180 0.018 115.0 105.0</code><br>
-        • DURATION in seconds<br>
-        • RISE = starting pitch (Hz)<br>
-        • FALL (optional) = ending pitch (Hz)
-        <strong>Valid Phonemes (ARPABET):</strong><br>
-        SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER,<br>
-        B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
-        <strong>Tip:</strong> Use SIL between words for natural pauses
-      </div>
+        <div class="spec-guide">
+            <strong>Spec Format:</strong> <code>PHONEME DURATION OVERLAP PITCH0 [PITCH1 PITCH2 ...]</code><br>
+            <strong>Fields:</strong><br>
+            - PHONEME: ARPABET symbol (e.g., HH, EH, SIL)<br>
+            - DUR: Duration in seconds (0.01-2.0)<br>
+            - OVRLP: Overlap with next phoneme (0.0-0.5)<br>
+            - PITCH: One or more pitch values in Hz (50-400)<br>
+            <strong>Lines starting with # are comments</strong>
+            <strong>The valid phonemes are: SIL AH AE AA AO EH EY IH IY OW UH UW ER B D G P T K M N NG Z ZH W Y HH CH JH </strong>
+        </div>
     </div>
     <div class="controls">
       <button id="synthesizeBtn" disabled>▶️ Synthesize</button>
