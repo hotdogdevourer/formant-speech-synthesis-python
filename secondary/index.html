@@ -1,489 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FSB4 Debug Synthesizer (Pyodide)</title>
-    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-    <style>
-        :root {
-            --primary-color: #2c3e50;
-            --secondary-color: #3498db;
-            --accent-color: #e74c3c;
-            --bg-color: #ecf0f1;
-            --text-color: #2c3e50;
-            --border-color: #bdc3c7;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            padding: 10px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        header {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 15px;
-            text-align: center;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        .tabs {
-            display: flex;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 15px;
-        }
-        
-        .tab-btn {
-            padding: 10px 20px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-color);
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .tab-btn:hover {
-            background-color: rgba(52, 152, 219, 0.1);
-        }
-        
-        .tab-btn.active {
-            color: var(--secondary-color);
-        }
-        
-        .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background-color: var(--secondary-color);
-        }
-        
-        .tab-content {
-            display: none;
-            padding: 15px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            min-height: 350px;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .split-pane {
-            display: flex;
-            gap: 15px;
-            height: 350px;
-        }
-        
-        .pane {
-            flex: 1;
-            overflow: auto;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 12px;
-        }
-        
-        .phoneme-list {
-            list-style: none;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            max-height: 100%;
-            overflow-y: auto;
-        }
-        
-        .phoneme-list li {
-            padding: 6px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            white-space: nowrap;
-        }
-        
-        .phoneme-list li:hover {
-            background-color: rgba(52, 152, 219, 0.15);
-        }
-        
-        textarea {
-            width: 100%;
-            height: 280px;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            resize: vertical;
-            margin-bottom: 12px;
-            tab-size: 4;
-        }
-        
-        .btn-group {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-        
-        button {
-            padding: 8px 16px;
-            background-color: var(--secondary-color);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-        
-        button:hover {
-            background-color: #2980b9;
-            transform: translateY(-1px);
-        }
-        
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        
-        button.danger {
-            background-color: var(--accent-color);
-        }
-        
-        button.danger:hover {
-            background-color: #c0392b;
-        }
-        
-        button.success {
-            background-color: #27ae60;
-        }
-        
-        button.success:hover {
-            background-color: #229954;
-        }
-        
-        .control-group {
-            margin-bottom: 15px;
-            padding: 12px;
-            background-color: #f8f9fa;
-            border-radius: 6px;
-            border-left: 4px solid var(--secondary-color);
-        }
-        
-        .control-group h3 {
-            margin-bottom: 8px;
-            color: var(--primary-color);
-            font-size: 16px;
-        }
-        
-        .control-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 8px;
-            flex-wrap: wrap;
-        }
-        
-        .control-label {
-            font-weight: 600;
-            min-width: 140px;
-            font-size: 14px;
-        }
-        
-        select, input[type="number"] {
-            padding: 6px 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        input[type="range"] {
-            flex: 1;
-            height: 22px;
-        }
-        
-        .value-display {
-            min-width: 45px;
-            text-align: right;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        
-        .playback-controls {
-            background-color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .status-bar {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 8px 15px;
-            margin-top: 15px;
-            border-radius: 6px;
-            font-size: 14px;
-            min-height: 24px;
-            word-wrap: break-word;
-        }
-        
-        .reference-text {
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.6;
-            white-space: pre-wrap;
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 6px;
-            overflow: auto;
-            max-height: 500px;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 30px;
-            color: var(--secondary-color);
-            font-size: 16px;
-        }
-        
-        .spinner {
-            border: 3px solid rgba(52, 152, 219, 0.3);
-            border-top: 3px solid var(--secondary-color);
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        .audio-progress {
-            width: 100%;
-            height: 5px;
-            background-color: #e0e0e0;
-            border-radius: 3px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        
-        .progress-bar {
-            height: 100%;
-            background-color: var(--secondary-color);
-            width: 0%;
-            transition: width 0.1s linear;
-        }
-        
-        .instruction-box {
-            background-color: #e8f4f8;
-            border-left: 4px solid var(--secondary-color);
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 12px;
-            font-size: 13px;
-        }
-        
-        .error {
-            color: var(--accent-color);
-            font-weight: bold;
-        }
-        
-        .success {
-            color: #27ae60;
-            font-weight: bold;
-        }
-        
-        @media (max-width: 768px) {
-            .split-pane {
-                flex-direction: column;
-                height: auto;
-            }
-            .control-row {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-            .control-label {
-                min-width: auto;
-            }
-            .btn-group {
-                flex-direction: column;
-            }
-            button {
-                width: 100%;
-            }
-        }
-    </style>
+<meta charset="UTF-8">
+<title>FSB4 Pyodide Synthesizer</title>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>FSB4 Debug Synthesizer (OVRLP Format)</h1>
-            <p>Pyodide-powered Formant Speech Synthesizer with Crossfade Blending</p>
-        </header>
-        
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>Loading Pyodide runtime (first load may take 30-60 seconds)...</p>
-        </div>
-        
-        <div id="app" class="hidden">
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="editor">Phoneme Editor</button>
-                <button class="tab-btn" data-tab="voice">Voice Controls</button>
-                <button class="tab-btn" data-tab="render">Audio Rendering</button>
-                <button class="tab-btn" data-tab="reference">Reference</button>
-            </div>
-            
-            <!-- Phoneme Editor Tab -->
-            <div id="editor" class="tab-content active">
-                <div class="split-pane">
-                    <div class="pane">
-                        <h3>Phoneme Library (click to insert)</h3>
-                        <ul id="phonemeList" class="phoneme-list"></ul>
-                    </div>
-                    <div class="pane">
-                        <h3>Phoneme Spec (PHONEME&nbsp;&nbsp;DUR&nbsp;&nbsp;&nbsp;&nbsp;OVRLP&nbsp;&nbsp;P0 [P1...])</h3>
-                        <textarea id="specEditor" spellcheck="false" placeholder="Enter phoneme specifications here...&#10;&#10;Format: PHONEME DUR OVRLP P0 [P1 P2 ...]&#10;Example: HH   0.080 0.012 115.0&#10;         EH   0.120 0.025 115.0 118.0"></textarea>
-                        <div class="btn-group">
-                            <button onclick="loadSpec()">Load Spec</button>
-                            <button onclick="saveSpec()">Save Spec</button>
-                            <button onclick="clearSpec()">Clear</button>
-                            <button onclick="parseSpec()" class="success">Parse to Phonemes</button>
-                            <button onclick="saveBytecode()" class="success">→ Save Bytecode (.phx)</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Voice Controls Tab -->
-            <div id="voice" class="tab-content">
-                <div class="control-group">
-                    <h3>Voice Selection</h3>
-                    <div class="control-row">
-                        <span class="control-label">Active Voice:</span>
-                        <select id="voiceCombo" onchange="changeVoice()"></select>
-                        <span class="control-label">Pitch Base:</span>
-                        <input type="number" id="pitchSpin" value="115" min="50" max="400" style="width: 70px;">
-                        <span>Hz</span>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <h3>Synthesis Parameters</h3>
-                    <div class="control-row">
-                        <span class="control-label">Speed (%):</span>
-                        <input type="range" id="speedSlider" min="50" max="200" value="100">
-                        <span id="speedValue" class="value-display">100%</span>
-                    </div>
-                    <div class="control-row">
-                        <span class="control-label">Formant Shift (Hz):</span>
-                        <input type="range" id="formantSlider" min="-200" max="200" value="0">
-                        <span id="formantValue" class="value-display">0</span>
-                    </div>
-                </div>
-                
-                <div class="control-group">
-                    <h3>Bytecode File Operations</h3>
-                    <div class="btn-group">
-                        <button onclick="loadBytecode()">Load .PHX Bytecode</button>
-                        <button onclick="saveBytecode()">Save .PHX Bytecode</button>
-                        <button onclick="loadPhnFile()">Load .PHN (Legacy)</button>
-                        <button onclick="exportWav()">Export Rendered WAV</button>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Audio Rendering Tab -->
-            <div id="render" class="tab-content">
-                <div class="instruction-box">
-                    <strong>RENDER WORKFLOW:</strong><br>
-                    1. Click "Render Audio from .phx File" below<br>
-                    2. SELECT a valid .phx bytecode file in the file dialog<br>
-                    3. FSB4 will LOAD the bytecode → SYNTHESIZE audio → CACHE buffer<br>
-                    4. Use playback controls to hear the cached audio (ZERO synthesis overhead)<br><br>
-                    <strong>⚠️ AUDIO SYNTHESIS ONLY OCCURS AFTER VALID BYTECODE IS LOADED</strong><br>
-                    <strong>OVRLP FORMAT:</strong> Each phoneme includes overlap duration (seconds) for smooth crossfading between adjacent phonemes.
-                </div>
-                
-                <button onclick="renderAudioFromFile()" style="width: 100%; padding: 12px; font-size: 16px; margin-top: 10px;" class="success">
-                    Render Audio from .phx File
-                </button>
-                
-                <div id="renderStatus" class="status-bar" style="margin-top: 15px;">
-                    Ready to render audio from bytecode file
-                </div>
-            </div>
-            
-            <!-- Reference Tab -->
-            <div id="reference" class="tab-content">
-                <div class="reference-text" id="referenceText"></div>
-            </div>
-            
-            <!-- Playback Controls -->
-            <div class="playback-controls">
-                <h3>Playback Controls (cached audio ONLY - NO SYNTHESIS)</h3>
-                <div class="btn-group">
-                    <button id="playBtn" onclick="playCachedAudio()" style="width: 180px; padding: 12px; font-size: 16px;">▶ Play Cached Audio</button>
-                    <button id="stopBtn" onclick="stopPlayback()" style="width: 90px; padding: 12px; font-size: 16px;" disabled>■ Stop</button>
-                </div>
-                <div class="audio-progress">
-                    <div id="progressBar" class="progress-bar"></div>
-                </div>
-            </div>
-            
-            <!-- Status Bar -->
-            <div class="status-bar" id="statusBar">
-                Workflow: Parse → Save Bytecode → Render from .phx File → Play Cached Buffer
-            </div>
-        </div>
-    </div>
+<h1>FSB4 Formant Synthesizer (Browser)</h1>
+<textarea id="inputText" rows="4" cols="50" placeholder="Type your text here..."></textarea><br>
+<button id="synthesizeBtn">Synthesize</button>
+<a id="downloadLink" style="display:none;">Download WAV</a>
+<audio id="audioPlayer" controls></audio>
 
-    <script>
-        // Global state
-        let pyodide = null;
-        let currentSpecs = [];
-        let renderedAudio = null;
-        let audioContext = null;
-        let audioBuffer = null;
-        let audioSource = null;
-        let isPlaying = false;
-        let startTime = 0;
-        let startOffset = 0;
-        let animationFrameId = null;
-        
-        // FSB4.py source code embedded as string literal
-        const FSB4_PY = `
+<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+<script type="text/python">
+import js
+import numpy as np
+import io
+import wave
 import numpy as np
 import scipy.signal as sig
 import wave
@@ -646,7 +179,7 @@ def phonemes_to_spec(phonemes: List[str], voice: Voice, pitch_base: float = 115.
     for i, ph in enumerate(phonemes):
         ph_data = voice.get_phoneme_data(ph)
         duration = ph_data.get('length', 0.14)
-        overlap = 0.018 if ph in VOWELS and i < len(phonemes) - 1 else 0.008
+        overlap = 0.018 if ph in VOWELS and i < len(phonemes) - 1 else 0.008  # Default overlaps
         
         if ph == 'SIL':
             pitch = [0.0]
@@ -667,7 +200,7 @@ def phonemes_to_spec(phonemes: List[str], voice: Voice, pitch_base: float = 115.
         specs.append({
             'phoneme': ph,
             'duration': duration,
-            'overlap': overlap,
+            'overlap': overlap,  # Added default overlap values
             'pitch_contour': pitch,
             'num_pitch_points': len(pitch),
             'f1': f1,
@@ -684,15 +217,15 @@ def parse_phoneme_spec(text: str, voice: Voice) -> List[Dict]:
         if not line or line.startswith('#'):
             continue
         parts = line.split()
-        if len(parts) < 4:
+        if len(parts) < 4:  # Now requires at least PHONEME DUR OVRLP P0
             continue
         ph_name = parts[0].upper()
         if ph_name not in PHONEME_TO_BYTE:
             continue
         try:
             duration = max(0.01, min(2.0, float(parts[1])))
-            overlap = max(0.0, min(0.5, float(parts[2])))
-            pitch_points = [float(p) for p in parts[3:]]
+            overlap = max(0.0, min(0.5, float(parts[2])))  # Cap overlap at 0.5s
+            pitch_points = [float(p) for p in parts[3:]]   # Pitch starts at index 3 now
             if len(pitch_points) > 8:
                 pitch_points = pitch_points[:8]
             ph_data = voice.get_phoneme_data(ph_name)
@@ -702,7 +235,7 @@ def parse_phoneme_spec(text: str, voice: Voice) -> List[Dict]:
             specs.append({
                 'phoneme': ph_name,
                 'duration': duration,
-                'overlap': overlap,
+                'overlap': overlap,  # NEW FIELD
                 'pitch_contour': pitch_points,
                 'num_pitch_points': len(pitch_points),
                 'f1': f1,
@@ -719,16 +252,16 @@ def specs_to_readable(specs: List[Dict]) -> str:
     for spec in specs:
         pitches = ' '.join(f"{p:.1f}" for p in spec['pitch_contour'])
         lines.append(f"{spec['phoneme']:4s} {spec['duration']:6.3f} {spec['overlap']:6.3f} {pitches}")
-    return '\\n'.join(lines)
+    return '\n'.join(lines)
 
 def save_parameterized_phonemes(filename: str, specs: List[Dict]):
     with open(filename, 'wb') as f:
-        f.write(b'\\xDE\\xAD\\xBE\\xEF')
+        f.write(b'\xDE\xAD\xBE\xEF')
         for spec in specs:
             ph_id = PHONEME_TO_BYTE[spec['phoneme']]
             f.write(bytes([ph_id]))
             np.array([spec['duration']], dtype=np.float32).tofile(f)
-            np.array([spec.get('overlap', 0.0)], dtype=np.float32).tofile(f)
+            np.array([spec.get('overlap', 0.0)], dtype=np.float32).tofile(f)  # NEW FIELD
             f.write(bytes([spec['num_pitch_points']]))
             pitches = spec['pitch_contour'] + [0.0] * (8 - spec['num_pitch_points'])
             np.array(pitches[:8], dtype=np.float32).tofile(f)
@@ -737,8 +270,8 @@ def save_parameterized_phonemes(filename: str, specs: List[Dict]):
 def load_parameterized_phonemes(filename: str) -> List[Dict]:
     with open(filename, 'rb') as f:
         magic = f.read(4)
-        if magic != b'\\xDE\\xAD\\xBE\\xEF':
-            raise ValueError(f"Not a valid PHX file (expected b'\\\\xDE\\\\xAD\\\\xBE\\\\xEF', got {magic})")
+        if magic != b'\xDE\xAD\xBE\xEF':
+            raise ValueError(f"Not a valid PHX file (expected b'\\xDE\\xAD\\xBE\\xEF', got {magic})")
         specs = []
         while True:
             ph_byte = f.read(1)
@@ -751,7 +284,7 @@ def load_parameterized_phonemes(filename: str) -> List[Dict]:
             if len(dur_arr) < 1:
                 break
             duration = float(dur_arr[0])
-            overlap_arr = np.fromfile(f, dtype=np.float32, count=1)
+            overlap_arr = np.fromfile(f, dtype=np.float32, count=1)  # NEW FIELD
             if len(overlap_arr) < 1:
                 overlap = 0.0
             else:
@@ -769,7 +302,7 @@ def load_parameterized_phonemes(filename: str) -> List[Dict]:
             specs.append({
                 'phoneme': BYTE_TO_PHONEME[ph_id],
                 'duration': duration,
-                'overlap': max(0.0, min(0.5, overlap)),
+                'overlap': max(0.0, min(0.5, overlap)),  # Safety clamp
                 'pitch_contour': [float(p) for p in pitches_arr[:num_pts]],
                 'num_pitch_points': num_pts,
                 'f1': float(formants_arr[0]),
@@ -964,42 +497,53 @@ class FormantSynthesizer:
         if not specs:
             return np.zeros(0)
         
+        # Calculate total output length accounting for overlaps
         total_duration = 0.0
         for spec in specs:
             total_duration += spec['duration']
         
+        # Subtract overlaps (each overlap reduces total time)
         for i in range(len(specs) - 1):
             total_duration -= min(specs[i].get('overlap', 0.0), specs[i]['duration'])
         
-        total_samples = int(total_duration * self.fs) + 10
+        total_samples = int(total_duration * self.fs) + 10  # Small buffer
         output = np.zeros(total_samples)
         current_pos = 0
         
         for i, spec in enumerate(specs):
+            # Generate current phoneme
             phoneme_audio = self.synthesize_phoneme_direct(spec)
             phoneme_samples = len(phoneme_audio)
             
+            # Determine how much to overlap with NEXT phoneme
             overlap_dur = spec.get('overlap', 0.0)
-            if i == len(specs) - 1:
+            if i == len(specs) - 1:  # Last phoneme never overlaps
                 overlap_dur = 0.0
             
+            # Cap overlap to prevent negative durations
             overlap_samples = min(
                 int(overlap_dur * self.fs),
-                phoneme_samples - 1,
-                int(spec['duration'] * self.fs * 0.5)
+                phoneme_samples - 1,  # Must leave at least 1 sample
+                int(spec['duration'] * self.fs * 0.5)  # Max 50% of phoneme
             )
             
+            # Place phoneme in output buffer
             end_pos = current_pos + phoneme_samples
             if end_pos > len(output):
+                # Extend buffer if needed (shouldn't happen with proper duration calc)
                 output = np.resize(output, end_pos + 1000)
             
+            # ADD (not crossfade!) the phoneme audio
             output[current_pos:end_pos] += phoneme_audio
             
+            # Advance position (accounting for overlap)
             current_pos += (phoneme_samples - overlap_samples)
         
+        # Final cleanup
         actual_length = min(current_pos, len(output))
         audio = output[:actual_length]
         
+        # Apply global processing
         audio = np.tanh(audio * 1.25) * 0.94
         b, a = sig.butter(5, 5000/(self.fs/2), btype='low')
         audio = sig.filtfilt(b, a, audio)
@@ -1012,769 +556,54 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
         wf.setsampwidth(2)
         wf.setframerate(sr)
         wf.writeframes(audio.tobytes())
-`;
 
-        // Initialize Pyodide and FSB4
-        async function main() {
-            try {
-                updateStatus('Loading Pyodide runtime...');
-                
-                // Load Pyodide
-                pyodide = await loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
-                });
-                
-                updateStatus('Installing numpy and scipy...');
-                
-                // Install required packages
-                await pyodide.loadPackage(['numpy', 'scipy']);
-                
-                updateStatus('Loading FSB4 module...');
-                
-                // Execute FSB4 module code
-                await pyodide.runPythonAsync(FSB4_PY);
-                
-                updateStatus('Initializing voice registry...');
-                
-                // Initialize UI
-                await initializeUI();
-                
-                updateStatus('✓ Ready! Parse spec → Save Bytecode → Render → Play');
-                
-                // Hide loading screen
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('app').classList.remove('hidden');
-                
-            } catch (error) {
-                console.error('Initialization error:', error);
-                document.getElementById('loading').innerHTML = 
-                    `<p class="error" style="color: #e74c3c; font-weight: bold; padding: 20px;">
-                    Failed to load FSB4:<br><br>${error.toString().replace(/</g, '&lt;')}
-                    </p>`;
-            }
-        }
-        
-        async function initializeUI() {
-            // Load phoneme library
-            const phonemeList = document.getElementById('phonemeList');
-            const byteToPhoneme = await pyodide.runPythonAsync(`
-import json
-print(json.dumps(${JSON.stringify(Object.fromEntries(Object.entries({0x00: 'SIL', 0x01: 'AH', 0x02: 'AE', 0x03: 'AA', 0x04: 'AO', 0x05: 'EH', 0x06: 'EY', 0x07: 'IH', 0x08: 'IY', 0x09: 'OW', 0x0A: 'UH', 0x0B: 'UW', 0x0C: 'ER', 0x0D: 'B', 0x0E: 'D', 0x0F: 'G', 0x10: 'P', 0x11: 'T', 0x12: 'K', 0x13: 'M', 0x14: 'N', 0x15: 'NG', 0x16: 'L', 0x17: 'R', 0x18: 'F', 0x19: 'S', 0x1A: 'SH', 0x1B: 'TH', 0x1C: 'DH', 0x1D: 'V', 0x1E: 'Z', 0x1F: 'ZH', 0x20: 'W', 0x21: 'Y', 0x22: 'HH', 0x23: 'CH', 0x24: 'JH'})).map(([k, v]) => [parseInt(k), v]))}))
+def synthesize_text_to_wav_bytes(text: str):
+    phonemes = text_to_phonemes(text)
+    specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
+    synth = FormantSynthesizer(VOICE_REGISTRY.current_voice)
+    audio = synth.synthesize_from_specs(specs)
+    
+    # Convert audio to WAV in memory
+    buf = io.BytesIO()
+    save_wav(buf, audio)
+    buf.seek(0)
+    return buf.read()
+</script>
+
+<script>
+async function main() {
+    const pyodide = await loadPyodide({indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"});
+    await pyodide.loadPackage(["numpy", "scipy"]);
+
+    document.getElementById("synthesizeBtn").onclick = async () => {
+        const text = document.getElementById("inputText").value;
+        try {
+            const wavBytes = pyodide.runPython(`
+synthesize_text_to_wav_bytes("""${text}""")
             `);
             
-            const sortedBytes = Object.keys(byteToPhoneme).sort((a, b) => parseInt(a) - parseInt(b));
+            // Convert Python bytes to JS Blob
+            const buffer = pyodide.ffi.toJs(wavBytes);
+            const blob = new Blob([buffer], {type: 'audio/wav'});
             
-            sortedBytes.forEach(byteVal => {
-                const phoneme = byteToPhoneme[byteVal];
-                const li = document.createElement('li');
-                li.textContent = `0x${parseInt(byteVal).toString(16).padStart(2, '0').toUpperCase()} ${phoneme}`;
-                li.onclick = () => addPhonemeToEditor(phoneme);
-                phonemeList.appendChild(li);
-            });
+            // Set audio player
+            const audioPlayer = document.getElementById("audioPlayer");
+            audioPlayer.src = URL.createObjectURL(blob);
             
-            // Load voices
-            const voices = await pyodide.runPythonAsync(`
-import json
-voices = list(VOICE_REGISTRY.list_voices().keys())
-print(json.dumps(voices))
-            `);
-            
-            const voiceCombo = document.getElementById('voiceCombo');
-            voices.forEach(voice => {
-                const option = document.createElement('option');
-                option.value = voice;
-                option.textContent = voice;
-                voiceCombo.appendChild(option);
-            });
-            
-            if (voices.includes('Default')) {
-                voiceCombo.value = 'Default';
-            }
-            
-            // Load reference text
-            document.getElementById('referenceText').textContent = `
-PHONEME REFERENCE GUIDE (OVRLP FORMAT)
-═══════════════════════════════════════════════════════════════════════════════
-NEW FORMAT:
-PHONEME  DUR    OVRLP  P0 [P1 P2 ...]
-• DUR   = Duration in seconds (0.01-2.0s)
-• OVRLP = Overlap duration into NEXT phoneme (0.0-0.5s)
-→ Enables smooth crossfading between phonemes
-→ Typical values: vowels 0.018-0.030s, consonants 0.008-0.015s
+            // Set download link
+            const link = document.getElementById("downloadLink");
+            link.href = audioPlayer.src;
+            link.download = "output.wav";
+            link.style.display = "inline";
+            link.textContent = "Download WAV";
+        } catch (err) {
+            console.error(err);
+            alert("Error synthesizing audio. See console for details.");
+        }
+    };
+}
 
-VOWELS:      AH AE AA AO EH EY IH IY OW UH UW ER
-STOPS:       P T K B D G CH (unvoiced/voiced pairs)
-FRICATIVES:  F S SH TH (unvoiced)  V Z ZH DH (voiced)
-NASALS:      M N NG
-LIQUIDS:     L R
-GLIDES:      W Y HH JH
-
-EXAMPLE WORDS WITH OVRLP:
-hello    → HH 0.080 0.012 115.0
-          EH 0.120 0.025 115.0
-          L  0.110 0.015 115.0
-          AO 0.140 0.030 112.0
-          OW 0.180 0.000 105.0
-
-SPECIAL NOTES:
-• SIL = silence (0.19s default, OVRLP=0.0)
-• _FINAL suffix increases vowel duration by 40%
-• Pitch contours: space-separated Hz values (max 8 points)
-• OVRLP=0.0 means NO blending with next phoneme (use for final phonemes)
-
-TECHNICAL SPECS:
-• Sample rate: 48 kHz
-• Format: .PHX (54 bytes/phoneme with OVRLP) - parameterized bytecode
-• Legacy: .PHN (1 byte/phoneme) - simple phoneme stream
-• Formant synthesis with glottal pulse modeling + crossfade blending
-
-FSB4 ARCHITECTURE ENFORCEMENT:
-✓ Spec → Parse → Internal specs WITH OVERLAP (NO audio)
-✓ Specs → Save Bytecode (.phx) = FILE I/O ONLY (NO audio)
-✓ Render Audio = FILE SELECTOR → LOAD .phx → SYNTHESIZE → CACHE BUFFER
-✓ Play = CACHED BUFFER ONLY (ZERO synthesis during playback)
-
-DEBUG WORKFLOW:
-1. Edit spec in Phoneme Editor tab (include OVRLP values!)
-2. Click "Parse to Phonemes" to validate
-3. Click "→ Save Bytecode (.phx)" to generate VALID bytecode WITH OVERLAP
-4. Go to "Audio Rendering" tab → Click "Render Audio from .phx File"
-5. SELECT .phx file → Audio synthesized WITH crossfade blending → cached
-6. Use playback controls to hear cached audio (NO synthesis overhead)
-
-EXAMPLE PHONEME INPUT (FULL OVRLP FORMAT):
-SIL  0.190 0.000 0.0
-HH   0.080 0.012 115.0
-EH   0.120 0.025 115.0 118.0
-L    0.110 0.015 115.0
-AO   0.140 0.030 112.0 108.0
-OW   0.180 0.000 105.0 100.0
-SIL  0.280 0.000 0.0
-            `;
-            
-            // Setup event listeners
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                    btn.classList.add('active');
-                    document.getElementById(btn.dataset.tab).classList.add('active');
-                });
-            });
-            
-            // Setup sliders
-            document.getElementById('speedSlider').addEventListener('input', (e) => {
-                document.getElementById('speedValue').textContent = e.target.value + '%';
-            });
-            
-            document.getElementById('formantSlider').addEventListener('input', (e) => {
-                document.getElementById('formantValue').textContent = e.target.value;
-            });
-            
-            // Initialize Web Audio API context
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            }
-        }
-        
-        function addPhonemeToEditor(phoneme) {
-            pyodide.runPythonAsync(`
-import json
-vowels = ${JSON.stringify(Array.from(['AH','AE','AA','AO','EH','EY','IH','IY','OW','UH','UW','ER']))}
-is_vowel = '${phoneme}' in vowels
-default_dur = "0.140" if is_vowel else "0.120"
-default_overlap = "0.025" if is_vowel else "0.010"
-print(json.dumps({"dur": default_dur, "overlap": default_overlap}))
-            `).then(result => {
-                const current = document.getElementById('specEditor').value.trim();
-                const specLine = `${phoneme.padEnd(4)} ${result.dur} ${result.overlap} 115.0`;
-                
-                if (current) {
-                    document.getElementById('specEditor').value += '\\n' + specLine;
-                } else {
-                    document.getElementById('specEditor').value = specLine;
-                }
-                
-                renderedAudio = null;
-                updateUIState();
-            }).catch(error => {
-                console.error('Phoneme insert error:', error);
-                updateStatus('Error inserting phoneme: ' + error.toString(), true);
-            });
-        }
-        
-        async function parseSpec() {
-            const text = document.getElementById('specEditor').value.trim();
-            if (!text) {
-                updateStatus('ERROR: No spec data!', true);
-                return;
-            }
-            
-            try {
-                updateStatus('Parsing spec...');
-                
-                // Check if it's English text or phoneme spec
-                const hasNumbers = /\\d+\\.\\d+/.test(text);
-                
-                if (!hasNumbers) {
-                    // English text - auto convert
-                    const phonemes = await pyodide.runPythonAsync(`
-import json
-text = ${JSON.stringify(text)}
-phonemes = text_to_phonemes(text)
-print(json.dumps(phonemes))
-                    `);
-                    
-                    const pitch = parseFloat(document.getElementById('pitchSpin').value);
-                    const specs = await pyodide.runPythonAsync(`
-import json
-phonemes = ${JSON.stringify(phonemes)}
-voice = VOICE_REGISTRY.current_voice
-specs = phonemes_to_spec(phonemes, voice, pitch_base=${pitch})
-print(json.dumps(specs, default=str))
-                    `);
-                    
-                    currentSpecs = specs;
-                } else {
-                    // Phoneme spec with OVRLP
-                    const specs = await pyodide.runPythonAsync(`
-import json
-text = ${JSON.stringify(text)}
-voice = VOICE_REGISTRY.current_voice
-specs = parse_phoneme_spec(text, voice)
-print(json.dumps(specs, default=str))
-                    `);
-                    
-                    if (!specs || specs.length <= 2) {
-                        updateStatus('ERROR: No valid phonemes generated!', true);
-                        return;
-                    }
-                    
-                    currentSpecs = specs;
-                }
-                
-                // Update editor with normalized format
-                const readable = await pyodide.runPythonAsync(`
-import json
-specs = ${JSON.stringify(currentSpecs)}
-text = specs_to_readable(specs)
-print(json.dumps(text))
-                `);
-                
-                document.getElementById('specEditor').value = readable.replace(/\\\\n/g, '\\n');
-                
-                const totalDur = currentSpecs.reduce((sum, s) => sum + s.duration, 0);
-                updateStatus(`✓ Parsed ${currentSpecs.length - 2} phonemes (${totalDur.toFixed(2)}s total, WITH OVERLAP). Save as .phx bytecode to render audio.`);
-                
-            } catch (error) {
-                console.error('Parse error:', error);
-                updateStatus('ERROR parsing: ' + error.toString(), true);
-            }
-        }
-        
-        async function saveBytecode() {
-            if (currentSpecs.length === 0) {
-                alert('Parse spec to phonemes first!');
-                return;
-            }
-            
-            try {
-                // Create virtual file in Pyodide
-                await pyodide.runPythonAsync(`
-specs = ${JSON.stringify(currentSpecs)}
-save_parameterized_phonemes('/tmp/output.phx', specs)
-                `);
-                
-                // Read the file and trigger download
-                const fileData = pyodide.FS.readFile('/tmp/output.phx');
-                const blob = new Blob([fileData], { type: 'application/octet-stream' });
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'output.phx';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                updateStatus('✓ Bytecode SAVED (WITH OVERLAP DATA - FILE I/O ONLY)');
-                
-            } catch (error) {
-                console.error('Save error:', error);
-                updateStatus('ERROR saving PHX: ' + error.toString(), true);
-                alert('Failed to save PHX file:\\n' + error.toString());
-            }
-        }
-        
-        async function loadBytecode() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.phx';
-            
-            input.onchange = async (e) => {
-                try {
-                    const file = e.target.files[0];
-                    const arrayBuffer = await file.arrayBuffer();
-                    
-                    // Write file to Pyodide FS
-                    pyodide.FS.writeFile('/tmp/input.phx', new Uint8Array(arrayBuffer));
-                    
-                    // Load specs
-                    const specs = await pyodide.runPythonAsync(`
-import json
-specs = load_parameterized_phonemes('/tmp/input.phx')
-print(json.dumps(specs, default=str))
-                    `);
-                    
-                    currentSpecs = specs;
-                    
-                    // Update editor
-                    const readable = await pyodide.runPythonAsync(`
-import json
-specs = ${JSON.stringify(specs)}
-text = specs_to_readable(specs)
-print(json.dumps(text))
-                    `);
-                    
-                    document.getElementById('specEditor').value = readable.replace(/\\\\n/g, '\\n');
-                    
-                    const totalDur = specs.reduce((sum, s) => sum + s.duration, 0);
-                    updateStatus(`✓ Bytecode LOADED (${specs.length} phonemes, ${totalDur.toFixed(2)}s, WITH OVERLAP) - FILE I/O ONLY`);
-                    
-                } catch (error) {
-                    console.error('Load error:', error);
-                    updateStatus('ERROR loading PHX: ' + error.toString(), true);
-                    alert('Failed to load PHX file:\\n' + error.toString());
-                }
-            };
-            
-            input.click();
-        }
-        
-        async function renderAudioFromFile() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.phx';
-            
-            input.onchange = async (e) => {
-                try {
-                    const file = e.target.files[0];
-                    if (!file) {
-                        updateStatus('Render cancelled - no file selected');
-                        return;
-                    }
-                    
-                    updateStatus(`.Loading bytecode from: ${file.name}`);
-                    
-                    const arrayBuffer = await file.arrayBuffer();
-                    pyodide.FS.writeFile('/tmp/render.phx', new Uint8Array(arrayBuffer));
-                    
-                    // Load specs
-                    const specs = await pyodide.runPythonAsync(`
-import json
-specs = load_parameterized_phonemes('/tmp/render.phx')
-print(json.dumps(specs, default=str))
-                    `);
-                    
-                    currentSpecs = specs;
-                    updateStatus('.Synthesizing audio with crossfade blending...');
-                    
-                    // Synthesize audio
-                    const audioArray = await pyodide.runPythonAsync(`
-import numpy as np
-import json
-
-specs = ${JSON.stringify(specs)}
-synth = FormantSynthesizer(VOICE_REGISTRY.current_voice, sample_rate=smp)
-audio = synth.synthesize_from_specs(specs)
-
-# Apply speed adjustment
-speed_factor = ${document.getElementById('speedSlider').value} / 100.0
-if speed_factor != 1.0:
-    from scipy import signal
-    import numpy as np
-    original_length = len(audio)
-    new_length = int(original_length / speed_factor)
-    x_old = np.linspace(0, 1, original_length)
-    x_new = np.linspace(0, 1, new_length)
-    audio = np.interp(x_new, x_old, audio)
-
-# Convert to list for JSON
-audio_list = audio.tolist()
-print(json.dumps({"audio": audio_list, "sample_rate": smp}))
-                    `);
-                    
-                    // Cache the audio
-                    renderedAudio = audioArray.audio;
-                    
-                    // Create AudioBuffer for playback
-                    if (!audioContext) {
-                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    }
-                    
-                    const buffer = audioContext.createBuffer(
-                        1, 
-                        renderedAudio.length, 
-                        audioArray.sample_rate
-                    );
-                    
-                    const channelData = buffer.getChannelData(0);
-                    for (let i = 0; i < renderedAudio.length; i++) {
-                        channelData[i] = renderedAudio[i];
-                    }
-                    
-                    audioBuffer = buffer;
-                    
-                    const duration = renderedAudio.length / audioArray.sample_rate;
-                    updateStatus(`✓ Audio RENDERED with crossfade blending (${duration.toFixed(2)}s). Click PLAY to hear cached buffer.`);
-                    updateUIState();
-                    
-                } catch (error) {
-                    console.error('Render error:', error);
-                    renderedAudio = null;
-                    updateStatus('Render error: ' + error.toString(), true);
-                    alert('Failed to render audio from bytecode:\\n' + error.toString());
-                }
-            };
-            
-            input.click();
-        }
-        
-        function playCachedAudio() {
-            if (!renderedAudio || !audioBuffer) {
-                alert(`No Rendered Audio
-
-Render audio first using 'Render Audio from .phx File' button!
-
-Workflow:
-1. Save or obtain a valid .phx bytecode file WITH OVERLAP DATA
-2. Click 'Render Audio from .phx File' in Audio Rendering tab
-3. SELECT the .phx file in the file dialog
-4. THEN click PLAY`);
-                updateStatus('ERROR: Render audio before playback', true);
-                return;
-            }
-            
-            if (isPlaying) {
-                stopPlayback();
-            }
-            
-            try {
-                if (audioContext.state === 'suspended') {
-                    audioContext.resume();
-                }
-                
-                if (audioSource) {
-                    try {
-                        audioSource.stop();
-                    } catch (e) {
-                        // Already stopped
-                    }
-                }
-                
-                audioSource = audioContext.createBufferSource();
-                audioSource.buffer = audioBuffer;
-                
-                // Apply gain
-                const gainNode = audioContext.createGain();
-                gainNode.gain.value = 0.8;
-                
-                audioSource.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                audioSource.onended = () => {
-                    isPlaying = false;
-                    updateUIState();
-                    document.getElementById('progressBar').style.width = '0%';
-                    updateStatus('Playback complete (cached buffer with crossfade blending)');
-                    if (animationFrameId) {
-                        cancelAnimationFrame(animationFrameId);
-                        animationFrameId = null;
-                    }
-                };
-                
-                startTime = audioContext.currentTime;
-                startOffset = 0;
-                audioSource.start(0, startOffset);
-                
-                isPlaying = true;
-                updateUIState();
-                updateStatus('Playing CACHED audio buffer with crossfade blending (ZERO synthesis overhead)...');
-                
-                // Update progress bar
-                updateProgress();
-                
-            } catch (error) {
-                console.error('Playback error:', error);
-                updateStatus('Playback error: ' + error.toString(), true);
-            }
-        }
-        
-        function updateProgress() {
-            if (!isPlaying || !audioSource || !audioBuffer) {
-                if (animationFrameId) {
-                    cancelAnimationFrame(animationFrameId);
-                    animationFrameId = null;
-                }
-                return;
-            }
-            
-            const currentTime = audioContext.currentTime - startTime + startOffset;
-            const duration = audioBuffer.duration;
-            const progress = Math.min(100, (currentTime / duration) * 100);
-            
-            document.getElementById('progressBar').style.width = progress + '%';
-            
-            animationFrameId = requestAnimationFrame(updateProgress);
-        }
-        
-        function stopPlayback() {
-            if (audioSource) {
-                try {
-                    audioSource.stop();
-                } catch (e) {
-                    // Already stopped
-                }
-            }
-            
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-            
-            isPlaying = false;
-            updateUIState();
-            document.getElementById('progressBar').style.width = '0%';
-            updateStatus('Playback stopped');
-        }
-        
-        function updateUIState() {
-            const playBtn = document.getElementById('playBtn');
-            const stopBtn = document.getElementById('stopBtn');
-            
-            playBtn.disabled = !(renderedAudio && !isPlaying);
-            stopBtn.disabled = !isPlaying;
-        }
-        
-        function updateStatus(message, isError = false) {
-            const statusBar = document.getElementById('statusBar');
-            statusBar.textContent = message;
-            statusBar.className = 'status-bar ' + (isError ? 'error' : '');
-        }
-        
-        // File operations
-        function loadSpec() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.txt';
-            
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                
-                reader.onload = (event) => {
-                    document.getElementById('specEditor').value = event.target.result;
-                    renderedAudio = null;
-                    updateUIState();
-                    updateStatus(`Loaded spec from: ${file.name}`);
-                };
-                
-                reader.readAsText(file);
-            };
-            
-            input.click();
-        }
-        
-        function saveSpec() {
-            const text = document.getElementById('specEditor').value;
-            const blob = new Blob([text], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'phoneme_spec.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-            updateStatus('Saved spec to file');
-        }
-        
-        function clearSpec() {
-            document.getElementById('specEditor').value = '';
-            renderedAudio = null;
-            updateUIState();
-        }
-        
-        async function changeVoice() {
-            const voiceName = document.getElementById('voiceCombo').value;
-            try {
-                await pyodide.runPythonAsync(`
-VOICE_REGISTRY.set_current_voice(${JSON.stringify(voiceName)})
-                `);
-                updateStatus(`Voice changed to: ${voiceName}`);
-                renderedAudio = null;
-                updateUIState();
-            } catch (error) {
-                console.error('Voice change error:', error);
-                updateStatus('Voice change error: ' + error.toString(), true);
-            }
-        }
-        
-        async function loadPhnFile() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.phn';
-            
-            input.onchange = async (e) => {
-                try {
-                    const file = e.target.files[0];
-                    const arrayBuffer = await file.arrayBuffer();
-                    const bytes = new Uint8Array(arrayBuffer);
-                    
-                    // Convert to phonemes
-                    const phonemeMap = {0x00: 'SIL', 0x01: 'AH', 0x02: 'AE', 0x03: 'AA', 0x04: 'AO', 0x05: 'EH', 0x06: 'EY', 0x07: 'IH', 0x08: 'IY', 0x09: 'OW', 0x0A: 'UH', 0x0B: 'UW', 0x0C: 'ER', 0x0D: 'B', 0x0E: 'D', 0x0F: 'G', 0x10: 'P', 0x11: 'T', 0x12: 'K', 0x13: 'M', 0x14: 'N', 0x15: 'NG', 0x16: 'L', 0x17: 'R', 0x18: 'F', 0x19: 'S', 0x1A: 'SH', 0x1B: 'TH', 0x1C: 'DH', 0x1D: 'V', 0x1E: 'Z', 0x1F: 'ZH', 0x20: 'W', 0x21: 'Y', 0x22: 'HH', 0x23: 'CH', 0x24: 'JH'};
-                    const phonemes = [];
-                    for (let byte of bytes) {
-                        if (phonemeMap[byte]) {
-                            phonemes.push(phonemeMap[byte]);
-                        }
-                    }
-                    
-                    if (phonemes.length === 0) {
-                        updateStatus('ERROR: No valid phonemes in PHN file!', true);
-                        return;
-                    }
-                    
-                    // Convert to specs with default overlap
-                    const specs = await pyodide.runPythonAsync(`
-import json
-phonemes = ${JSON.stringify(phonemes)}
-voice = VOICE_REGISTRY.current_voice
-specs = []
-vowels = ${JSON.stringify(Array.from(['AH','AE','AA','AO','EH','EY','IH','IY','OW','UH','UW','ER']))}
-for i, ph in enumerate(phonemes):
-    ph_data = voice.get_phoneme_data(ph)
-    duration = ph_data.get('length', 0.14)
-    overlap = 0.018 if ph in vowels and i < len(phonemes) - 1 else 0.008
-    pitch = 115.0 if ph_data.get('voiced', False) and ph != 'SIL' else 0.0
-    f1 = ph_data.get('f1', 0.0) or 0.0
-    f2 = ph_data.get('f2', 0.0) or 0.0
-    f3 = ph_data.get('f3', 0.0) or 0.0
-    specs.append({
-        'phoneme': ph,
-        'duration': duration,
-        'overlap': overlap,
-        'pitch_contour': [pitch],
-        'num_pitch_points': 1,
-        'f1': f1,
-        'f2': f2,
-        'f3': f3,
-        'voiced': ph not in {'SIL','B','D','G','P','T','K','F','S','SH','TH','HH','CH'}
-    })
-print(json.dumps(specs, default=str))
-                    `);
-                    
-                    currentSpecs = specs;
-                    renderedAudio = null;
-                    updateUIState();
-                    
-                    const readable = await pyodide.runPythonAsync(`
-import json
-specs = ${JSON.stringify(specs)}
-text = specs_to_readable(specs)
-print(json.dumps(text))
-                    `);
-                    
-                    document.getElementById('specEditor').value = readable.replace(/\\\\n/g, '\\n');
-                    updateStatus(`Loaded ${phonemes.length} legacy phonemes → CONVERTED TO OVRLP FORMAT (NOT valid .phx bytecode)`);
-                    
-                } catch (error) {
-                    console.error('PHN load error:', error);
-                    updateStatus('ERROR loading PHN: ' + error.toString(), true);
-                }
-            };
-            
-            input.click();
-        }
-        
-        function exportWav() {
-            if (!renderedAudio) {
-                alert('Render audio before exporting WAV!');
-                return;
-            }
-            
-            try {
-                // Convert audio to WAV format
-                const sampleRate = 48000;
-                const audioData = new Float32Array(renderedAudio);
-                
-                // Create WAV file
-                const wavBlob = createWavBlob(audioData, sampleRate);
-                
-                const url = URL.createObjectURL(wavBlob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'output.wav';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-                const sizeKb = wavBlob.size / 1024;
-                const duration = renderedAudio.length / sampleRate;
-                updateStatus(`✓ WAV exported (${sizeKb.toFixed(1)} KB, ${duration.toFixed(2)}s with crossfade)`);
-                
-            } catch (error) {
-                console.error('Export error:', error);
-                updateStatus('ERROR exporting WAV: ' + error.toString(), true);
-                alert('Failed to export WAV file:\\n' + error.toString());
-            }
-        }
-        
-        function createWavBlob(audioData, sampleRate) {
-            const numChannels = 1;
-            const bytesPerSample = 2; // 16-bit
-            
-            // Clip and convert to 16-bit PCM
-            const buffer = new ArrayBuffer(44 + audioData.length * bytesPerSample);
-            const view = new DataView(buffer);
-            
-            // Write WAV header
-            writeString(view, 0, 'RIFF');
-            view.setUint32(4, 36 + audioData.length * bytesPerSample, true);
-            writeString(view, 8, 'WAVE');
-            writeString(view, 12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, 1, true);
-            view.setUint16(22, numChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * numChannels * bytesPerSample, true);
-            view.setUint16(32, numChannels * bytesPerSample, true);
-            view.setUint16(34, bytesPerSample * 8, true);
-            writeString(view, 36, 'data');
-            view.setUint32(40, audioData.length * bytesPerSample, true);
-            
-            // Write audio data
-            const volume = 32767;
-            for (let i = 0; i < audioData.length; i++) {
-                const val = Math.max(-1, Math.min(1, audioData[i]));
-                view.setInt16(44 + i * bytesPerSample, val * volume, true);
-            }
-            
-            return new Blob([view], { type: 'audio/wav' });
-        }
-        
-        function writeString(view, offset, string) {
-            for (let i = 0; i < string.length; i++) {
-                view.setUint8(offset + i, string.charCodeAt(i));
-            }
-        }
-        
-        // Start initialization when page loads
-        window.addEventListener('DOMContentLoaded', main);
-    </script>
+main();
+</script>
 </body>
 </html>
