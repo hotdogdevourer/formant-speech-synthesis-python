@@ -11,7 +11,7 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
             line-height: 1.6;
             color: #333;
-            max-width: 800px;
+            max-width: 900px;
             margin: 2rem auto;
             padding: 1.5rem;
             background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
@@ -31,11 +31,11 @@
         }
         textarea {
             width: 100%;
-            height: 120px;
+            height: 160px;
             padding: 1rem;
             border: 2px solid #ddd;
             border-radius: 12px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             margin-bottom: 1.2rem;
             resize: vertical;
             transition: border-color 0.3s;
@@ -56,6 +56,7 @@
         }
         .mode-word { background: #e8f5e9; color: #2e7d32; }
         .mode-phoneme { background: #e3f2fd; color: #1565c0; }
+        .mode-spec { background: #f3e5f5; color: #4a148c; }
         .mode-unknown { background: #fff8e1; color: #5d4037; }
         .controls {
             display: flex;
@@ -119,14 +120,20 @@
             margin: 1.5rem 0;
             font-size: 0.95rem;
         }
-        .phoneme-guide {
-            background: #e8f5e9;
-            border-left: 4px solid #2e7d32;
+        .phoneme-guide, .spec-guide {
             padding: 1rem;
             border-radius: 0 8px 8px 0;
             margin: 1rem 0;
             font-family: monospace;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+        }
+        .phoneme-guide {
+            background: #e8f5e9;
+            border-left: 4px solid #2e7d32;
+        }
+        .spec-guide {
+            background: #f3e5f5;
+            border-left: 4px solid #4a148c;
         }
         .limitations {
             font-size: 0.9rem;
@@ -139,6 +146,7 @@
             display: flex;
             margin-bottom: 1rem;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
         .tab {
             padding: 0.6rem 1rem;
@@ -147,6 +155,9 @@
             border-radius: 8px 8px 0 0;
             cursor: pointer;
             font-weight: 600;
+            flex: 1;
+            min-width: 120px;
+            text-align: center;
         }
         .tab.active {
             background: #4a6fa5;
@@ -157,6 +168,9 @@
         }
         .tab-content.active {
             display: block;
+        }
+        .example-btn {
+            background: linear-gradient(to bottom, #9c27b0, #6a1b9a);
         }
         @media (max-width: 600px) {
             .controls { flex-direction: column; }
@@ -174,18 +188,43 @@
         <div class="tabs">
             <button class="tab active" data-tab="word">🔤 Word Mode</button>
             <button class="tab" data-tab="phoneme">👄 Phoneme Mode</button>
+            <button class="tab" data-tab="spec">🎛️ Spec Mode</button>
         </div>
         
         <div id="word-tab" class="tab-content active">
-            <textarea id="textInput" placeholder="Enter words (e.g., 'hello world robot') OR phonemes (e.g., 'HH EH L OW W ER L D')">hello world this is a robot voice</textarea>
+            <textarea id="textInput" placeholder="Enter words (e.g., 'hello world robot')">hello world this is a robot voice</textarea>
             <div id="modeIndicator" class="mode-indicator mode-unknown">❓ Input mode will auto-detect</div>
         </div>
         
         <div id="phoneme-tab" class="tab-content">
             <textarea id="phonemeInput" placeholder="Enter phonemes separated by spaces (e.g., HH EH L OW SIL W ER L D)">HH EH L OW SIL W ER L D</textarea>
             <div class="phoneme-guide">
-                <strong>Valid Phonemes:</strong> SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER, B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
+                <strong>Valid Phonemes (ARPABET):</strong><br>
+                SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER,<br>
+                B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
                 <strong>Tip:</strong> Use SIL between words for natural pauses
+            </div>
+        </div>
+        
+        <div id="spec-tab" class="tab-content">
+            <textarea id="specInput" placeholder="Enter spec format: PHONEME DUR OVRLP P0 [P1 P2 ...]"># PHONEME  DUR    OVRLP  PITCH_CONTOUR
+HH       0.150  0.010  115.0
+EH       0.140  0.018  115.0
+L        0.120  0.008  115.0
+OW       0.160  0.018  115.0 110.0
+SIL      0.190  0.008  0.0
+W        0.120  0.008  115.0
+ER       0.140  0.018  115.0
+L        0.120  0.008  115.0
+D        0.068  0.008  0.0</textarea>
+            <div class="spec-guide">
+                <strong>Spec Format:</strong> <code>PHONEME DURATION OVERLAP PITCH0 [PITCH1 PITCH2 ...]</code><br>
+                <strong>Fields:</strong><br>
+                - PHONEME: ARPABET symbol (e.g., HH, EH, SIL)<br>
+                - DUR: Duration in seconds (0.01-2.0)<br>
+                - OVRLP: Overlap with next phoneme (0.0-0.5)<br>
+                - PITCH: One or more pitch values in Hz (50-400)<br>
+                <strong>Lines starting with # are comments</strong>
             </div>
         </div>
         
@@ -197,12 +236,13 @@
         <div id="status" class="status-loading">Initializing Pyodide environment...</div>
         
         <div class="info-box">
-            <strong>ℹ️ How it works:</strong> 
+            <strong>ℹ️ Input Modes:</strong> 
             <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
                 <li><strong>Word Mode:</strong> Type normal text using words from the built-in dictionary</li>
-                <li><strong>Phoneme Mode:</strong> Enter ARPABET phonemes for precise control (see guide above)</li>
-                <li>All processing happens in your browser using Pyodide (WebAssembly) - no data leaves your device</li>
+                <li><strong>Phoneme Mode:</strong> Enter ARPABET phonemes for precise control</li>
+                <li><strong>Spec Mode:</strong> Full parameter control with duration, overlap, and pitch contours</li>
             </ul>
+            <p style="margin-top: 0.8rem;"><strong>All processing happens in your browser</strong> using Pyodide (WebAssembly) - no data leaves your device.</p>
         </div>
         
         <div class="audio-container">
@@ -211,11 +251,11 @@
         
         <div class="limitations">
             <strong>Dictionary:</strong> hello, world, test, one, two, robot, voice, computer, formant, speech, synthesis, and 40+ more words.<br>
-            <strong>Pro Tip:</strong> Unknown words become silence. For full control, use Phoneme Mode!
+            <strong>Pro Tip:</strong> Use Spec Mode for advanced control over timing and intonation!
         </div>
     </div>
 
-    <!-- Hidden script containing FSB4.py source with phoneme input support -->
+    <!-- Hidden script containing FSB4.py source with full spec support -->
     <script type="text/python" id="fsb4-source">
 import numpy as np
 import scipy.signal as sig
@@ -370,6 +410,44 @@ def parse_phoneme_input(text: str) -> List[str]:
     if phonemes[-1] != 'SIL':
         phonemes.append('SIL')
     return phonemes
+
+def parse_phoneme_spec(text: str, voice: Voice) -> List[Dict]:
+    """Parse parameterized phoneme specification format"""
+    specs = []
+    for line_num, line in enumerate(text.splitlines(), 1):
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        if len(parts) < 4:
+            continue
+        ph_name = parts[0].upper()
+        if ph_name not in PHONEME_TO_BYTE:
+            continue
+        try:
+            duration = max(0.01, min(2.0, float(parts[1])))
+            overlap = max(0.0, min(0.5, float(parts[2])))
+            pitch_points = [float(p) for p in parts[3:]]
+            if len(pitch_points) > 8:
+                pitch_points = pitch_points[:8]
+            ph_data = voice.get_phoneme_data(ph_name)
+            f1 = ph_data.get('f1', 0.0) or 0.0
+            f2 = ph_data.get('f2', 0.0) or 0.0
+            f3 = ph_data.get('f3', 0.0) or 0.0
+            specs.append({
+                'phoneme': ph_name,
+                'duration': duration,
+                'overlap': overlap,
+                'pitch_contour': pitch_points,
+                'num_pitch_points': len(pitch_points),
+                'f1': f1,
+                'f2': f2,
+                'f3': f3,
+                'voiced': ph_name not in {'SIL','B','D','G','P','T','K','F','S','SH','TH','HH','CH'}
+            })
+        except ValueError:
+            continue
+    return specs
 
 def phonemes_to_spec(phonemes: List[str], voice: Voice, pitch_base: float = 115.0) -> List[Dict]:
     specs = []
@@ -642,22 +720,30 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
         wf.writeframes(audio_int16.tobytes())
     return buffer.getvalue()
 
-# Unified synthesis function with auto-detection
+# Unified synthesis function with mode detection
 def synthesize_text(text: str):
     text = text.strip()
     if not text:
-        return generate_wav_bytes(np.zeros(int(0.5 * smp)))
+        return generate_wav_bytes(np.zeros(int(0.5 * smp))), "empty"
     
-    # Auto-detect mode: if ALL tokens are valid phonemes → phoneme mode
-    tokens = text.upper().split()
-    if tokens and all(t in VALID_PHONEMES for t in tokens):
-        phonemes = parse_phoneme_input(text)
-        mode = "phoneme"
+    # Check if this is spec format (contains numbers after phoneme)
+    lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith('#')]
+    if lines and len(lines[0].split()) >= 4:
+        # Parse as spec format
+        specs = parse_phoneme_spec(text, VOICE_REGISTRY.current_voice)
+        mode = "spec"
     else:
-        phonemes = text_to_phonemes(text)
-        mode = "word"
+        # Auto-detect word vs phoneme
+        tokens = text.upper().split()
+        if tokens and all(t in VALID_PHONEMES for t in tokens):
+            phonemes = parse_phoneme_input(text)
+            specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
+            mode = "phoneme"
+        else:
+            phonemes = text_to_phonemes(text)
+            specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
+            mode = "word"
     
-    specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
     synth = FormantSynthesizer(VOICE_REGISTRY.current_voice)
     audio = synth.synthesize_from_specs(specs)
     return generate_wav_bytes(audio), mode
@@ -665,7 +751,7 @@ def synthesize_text(text: str):
 
     <script>
         // ======================
-        // JAVASCRIPT PYODIDE INTEGRATION WITH DUAL-MODE SUPPORT
+        // JAVASCRIPT PYODIDE INTEGRATION WITH THREE-MODE SUPPORT
         // ======================
         let pyodide;
         let synthesizeFunc;
@@ -675,9 +761,11 @@ def synthesize_text(text: str):
         const audioPlayer = document.getElementById('audioPlayer');
         const textInput = document.getElementById('textInput');
         const phonemeInput = document.getElementById('phonemeInput');
+        const specInput = document.getElementById('specInput');
         const modeIndicator = document.getElementById('modeIndicator');
         const wordTab = document.getElementById('word-tab');
         const phonemeTab = document.getElementById('phoneme-tab');
+        const specTab = document.getElementById('spec-tab');
 
         // Tab switching
         document.querySelectorAll('.tab').forEach(tab => {
@@ -687,12 +775,14 @@ def synthesize_text(text: str):
                 tab.classList.add('active');
                 
                 // Show correct content
-                const tabName = tab.dataset.tab;
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                const tabName = tab.dataset.tab;
                 if (tabName === 'word') {
                     wordTab.classList.add('active');
-                } else {
+                } else if (tabName === 'phoneme') {
                     phonemeTab.classList.add('active');
+                } else {
+                    specTab.classList.add('active');
                 }
             });
         });
@@ -725,7 +815,7 @@ def synthesize_text(text: str):
             updateStatus("Loading Pyodide...", "status-loading");
             
             try {
-                // CRITICAL FIX: Removed trailing spaces from CDN URLs that caused 404 errors
+                // CRITICAL FIX: Removed trailing spaces from CDN URLs
                 pyodide = await loadPyodide({
                     indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
                 });
@@ -747,7 +837,7 @@ def synthesize_text(text: str):
                 
                 synthesizeFunc = pyodide.globals.get("js_synthesize");
                 
-                updateStatus("✅ Ready! Enter text or phonemes and click Synthesize", "status-ready");
+                updateStatus("✅ Ready! Enter text, phonemes, or specs and click Synthesize", "status-ready");
                 synthesizeBtn.disabled = false;
                 playExampleBtn.disabled = false;
                 
@@ -792,7 +882,15 @@ def synthesize_text(text: str):
                 }
                 
                 audioPlayer.src = url;
-                updateStatus(`✅ ${mode === 'phoneme' ? 'Phoneme sequence' : 'Text'} synthesized! Click play to hear`, "status-ready");
+                
+                // Update status based on mode
+                const modeNames = {
+                    'word': 'Text',
+                    'phoneme': 'Phoneme sequence',
+                    'spec': 'Parameterized spec',
+                    'empty': 'Empty input'
+                };
+                updateStatus(`✅ ${modeNames[mode] || mode} synthesized! Click play to hear`, "status-ready");
                 return url;
             } catch (error) {
                 console.error("Synthesis error:", error);
@@ -809,11 +907,17 @@ def synthesize_text(text: str):
         synthesizeBtn.addEventListener('click', async () => {
             // Get input based on active tab
             const activeTab = document.querySelector('.tab.active').dataset.tab;
-            const text = activeTab === 'word' ? textInput.value.trim() : phonemeInput.value.trim();
+            let text;
+            if (activeTab === 'word') {
+                text = textInput.value.trim();
+            } else if (activeTab === 'phoneme') {
+                text = phonemeInput.value.trim();
+            } else {
+                text = specInput.value.trim();
+            }
             
             if (!text) {
-                alert("Please enter some text or phonemes first!");
-                (activeTab === 'word' ? textInput : phonemeInput).focus();
+                alert("Please enter some input first!");
                 return;
             }
             
@@ -829,9 +933,23 @@ def synthesize_text(text: str):
             if (activeTab === 'word') {
                 textInput.value = "hello world this is a robot voice synthesizer";
                 await synthesize(textInput.value);
-            } else {
+            } else if (activeTab === 'phoneme') {
                 phonemeInput.value = "HH EH L OW SIL W ER L D SIL DH IH S SIL IH Z SIL AH SIL R OW B AA T SIL V AO Y S";
                 await synthesize(phonemeInput.value);
+            } else {
+                // Spec mode example with pitch contours for expressive speech
+                specInput.value = `# Expressive "Hello World" with pitch variation
+HH       0.150  0.010  120.0
+EH       0.140  0.018  115.0
+L        0.120  0.008  115.0
+OW       0.180  0.018  115.0 105.0
+SIL      0.120  0.008  0.0
+W        0.120  0.008  110.0
+ER       0.140  0.018  115.0
+L        0.120  0.008  115.0
+D        0.068  0.008  0.0
+SIL      0.300  0.008  0.0`;
+                await synthesize(specInput.value);
             }
             
             if (audioPlayer.src) {
