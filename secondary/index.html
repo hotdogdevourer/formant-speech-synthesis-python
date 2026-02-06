@@ -1,240 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SSNJ Formant Speech Synthesizer</title>
-<script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
-    line-height: 1.6;
-    color: #333;
-    max-width: 900px;
-    margin: 2rem auto;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
-}
-h1 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-    color: #2c3e50;
-    font-size: 2.2rem;
-}
-.container {
-    background: white;
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-    padding: 2rem;
-    margin-top: 1rem;
-}
-textarea {
-    width: 100%;
-    height: 160px;
-    padding: 1rem;
-    border: 2px solid #ddd;
-    border-radius: 12px;
-    font-size: 1rem;
-    margin-bottom: 1.2rem;
-    resize: vertical;
-    transition: border-color 0.3s;
-    font-family: monospace;
-}
-textarea:focus {
-    outline: none;
-    border-color: #4a6fa5;
-    box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
-}
-.mode-indicator {
-    text-align: center;
-    margin-bottom: 1rem;
-    padding: 0.6rem;
-    border-radius: 10px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-.mode-word { background: #e8f5e9; color: #2e7d32; }
-.mode-phoneme { background: #e3f2fd; color: #1565c0; }
-.mode-spec { background: #f3e5f5; color: #4a148c; }
-.mode-unknown { background: #fff8e1; color: #5d4037; }
-.controls {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-    align-items: stretch;
-}
-button {
-    flex: 1;
-    min-width: 120px;
-    padding: 0.9rem 1.5rem;
-    background: linear-gradient(to bottom, #4a6fa5, #2c3e50);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
-}
-button:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(44, 62, 80, 0.4);
-}
-button:active:not(:disabled) {
-    transform: translateY(0);
-}
-button:disabled {
-    background: #bdc3c7;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-.download-btn {
-    background: linear-gradient(to bottom, #27ae60, #219653);
-    min-width: 140px;
-}
-.download-btn:disabled {
-    background: #bdc3c7;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-}
-.audio-container {
-    margin-top: 1.5rem;
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-}
-audio {
-    width: 100%;
-    max-width: 600px;
-    margin-top: 0.5rem;
-}
-.audio-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
-}
-.audio-actions button {
-    padding: 0.7rem 1.2rem;
-    font-size: 0.95rem;
-    min-width: 100px;
-}
-#status {
-    text-align: center;
-    margin: 1.2rem 0;
-    min-height: 1.8rem;
-    font-weight: 500;
-    padding: 0.5rem;
-    border-radius: 8px;
-}
-.status-loading { color: #2980b9; background: #e3f2fd; }
-.status-ready { color: #27ae60; background: #e8f5e9; }
-.status-error { color: #e74c3c; background: #fadbd8; }
-.status-processing { color: #8e44ad; background: #f5f9fc; }
-.info-box {
-    background: #e3f2fd;
-    border-left: 4px solid #2980b9;
-    padding: 1rem;
-    border-radius: 0 8px 8px 0;
-    margin: 1.5rem 0;
-    font-size: 0.95rem;
-}
-.phoneme-guide, .spec-guide {
-    padding: 1rem;
-    border-radius: 0 8px 8px 0;
-    margin: 1rem 0;
-    font-family: monospace;
-    font-size: 0.9rem;
-}
-.phoneme-guide {
-    background: #e8f5e9;
-    border-left: 4px solid #2e7d32;
-}
-.spec-guide {
-    background: #f3e5f5;
-    border-left: 4px solid #4a148c;
-}
-.limitations {
-    font-size: 0.9rem;
-    color: #7f8c8d;
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px dashed #bdc3c7;
-}
-.tabs {
-    display: flex;
-    margin-bottom: 1rem;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-.tab {
-    padding: 0.6rem 1rem;
-    background: #e0e7ff;
-    border: none;
-    border-radius: 8px 8px 0 0;
-    cursor: pointer;
-    font-weight: 600;
-    flex: 1;
-    min-width: 120px;
-    text-align: center;
-}
-.tab.active {
-    background: #4a6fa5;
-    color: white;
-}
-.tab-content {
-    display: none;
-}
-.tab-content.active {
-    display: block;
-}
-.example-btn {
-    background: linear-gradient(to bottom, #9c27b0, #6a1b9a);
-}
-@media (max-width: 600px) {
-    .controls { flex-direction: column; }
-    button { width: 100%; min-width: auto; }
-    body { padding: 1rem; margin: 1rem; }
-    .tabs { flex-direction: column; }
-    .tab { border-radius: 8px; width: 100%; }
-    .audio-actions { flex-direction: column; width: 100%; }
-}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSNJ Formant Speech Synthesizer</title>
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 900px;
+      margin: 2rem auto;
+      padding: 1.5rem;
+      background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #2c3e50;
+      font-size: 2.2rem;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+      padding: 2rem;
+      margin-top: 1rem;
+    }
+    textarea {
+      width: 100%;
+      height: 160px;
+      padding: 1rem;
+      border: 2px solid #ddd;
+      border-radius: 12px;
+      font-size: 1rem;
+      margin-bottom: 1.2rem;
+      resize: vertical;
+      transition: border-color 0.3s;
+      font-family: monospace;
+    }
+    textarea:focus {
+      outline: none;
+      border-color: #4a6fa5;
+      box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+    }
+    .mode-indicator {
+      text-align: center;
+      margin-bottom: 1rem;
+      padding: 0.6rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+    .mode-word { background: #e8f5e9; color: #2e7d32; }
+    .mode-phoneme { background: #e3f2fd; color: #1565c0; }
+    .mode-spec { background: #f3e5f5; color: #4a148c; }
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      align-items: stretch;
+    }
+    button {
+      flex: 1;
+      min-width: 120px;
+      padding: 0.9rem 1.5rem;
+      background: linear-gradient(to bottom, #4a6fa5, #2c3e50);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
+    }
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(44, 62, 80, 0.4);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    button:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .download-btn {
+      background: linear-gradient(to bottom, #27ae60, #219653);
+      min-width: 140px;
+    }
+    .download-btn:disabled {
+      background: #bdc3c7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .audio-container {
+      margin-top: 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    audio {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 0.5rem;
+    }
+    .audio-actions {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .audio-actions button {
+      padding: 0.7rem 1.2rem;
+      font-size: 0.95rem;
+      min-width: 100px;
+    }
+    #status {
+      text-align: center;
+      margin: 1.2rem 0;
+      min-height: 1.8rem;
+      font-weight: 500;
+      padding: 0.5rem;
+      border-radius: 8px;
+    }
+    .status-loading { color: #2980b9; background: #e3f2fd; }
+    .status-ready { color: #27ae60; background: #e8f5e9; }
+    .status-error { color: #e74c3c; background: #fadbd8; }
+    .status-processing { color: #8e44ad; background: #f5f9fc; }
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2980b9;
+      padding: 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1.5rem 0;
+      font-size: 0.95rem;
+    }
+    .phoneme-guide, .spec-guide {
+      padding: 1rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    .phoneme-guide {
+      background: #e8f5e9;
+      border-left: 4px solid #2e7d32;
+    }
+    .spec-guide {
+      background: #f3e5f5;
+      border-left: 4px solid #4a148c;
+    }
+    .limitations {
+      font-size: 0.9rem;
+      color: #7f8c8d;
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px dashed #bdc3c7;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 1rem;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .tab {
+      padding: 0.6rem 1rem;
+      background: #e0e7ff;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-weight: 600;
+      flex: 1;
+      min-width: 120px;
+      text-align: center;
+    }
+    .tab.active {
+      background: #4a6fa5;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .example-btn {
+      background: linear-gradient(to bottom, #9c27b0, #6a1b9a);
+    }
+    @media (max-width: 600px) {
+      .controls { flex-direction: column; }
+      button { width: 100%; min-width: auto; }
+      body { padding: 1rem; margin: 1rem; }
+      .tabs { flex-direction: column; }
+      .tab { border-radius: 8px; width: 100%; }
+      .audio-actions { flex-direction: column; width: 100%; }
+    }
+  </style>
 </head>
 <body>
-<h1>🤖 Jim Formant Speech Synthesizer</h1>
-<div class="container">
+  <h1>🤖 Jim Formant Speech Synthesizer</h1>
+  <div class="container">
     <div class="tabs">
-        <button class="tab active" data-tab="word">🔤 Word Mode</button>
-        <button class="tab" data-tab="phoneme">👄 Phoneme Mode</button>
-        <button class="tab" data-tab="spec">🎛️ Spec Mode</button>
+      <button class="tab active" data-tab="word">🔤 Word Mode</button>
+      <button class="tab" data-tab="phoneme">👄 Phoneme Mode</button>
+      <button class="tab" data-tab="spec">🎛️ Spec Mode</button>
     </div>
-    
     <div id="word-tab" class="tab-content active">
-        <textarea id="textInput" placeholder="Enter words (e.g., 'hello world robot')">hello world this is a robot voice</textarea>
-        <div id="modeIndicator" class="mode-indicator mode-unknown">❓ Input mode will auto-detect</div>
+      <textarea id="textInput" placeholder="Enter words (e.g., 'hello world robot')">hello world this is a robot voice</textarea>
+      <div class="mode-indicator mode-word">🔤 Strict Word Mode (no auto-detection)</div>
     </div>
-    
     <div id="phoneme-tab" class="tab-content">
-        <textarea id="phonemeInput" placeholder="Enter phonemes separated by spaces (e.g., HH EH L OW SIL W ER L D)">HH EH L OW SIL W ER L D</textarea>
-        <div class="phoneme-guide">
-            <strong>Valid Phonemes (ARPABET):</strong><br>
-            SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER,<br>
-            B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
-            <strong>Tip:</strong> Use SIL between words for natural pauses
-        </div>
+      <textarea id="phonemeInput" placeholder="Enter phonemes separated by spaces (e.g., HH EH L OW SIL W ER L D)">HH EH L OW SIL W ER L D</textarea>
+      <div class="phoneme-guide">
+        <strong>Valid Phonemes (ARPABET):</strong><br>
+        SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER,<br>
+        B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
+        <strong>Tip:</strong> Use SIL between words for natural pauses
+      </div>
     </div>
-    
     <div id="spec-tab" class="tab-content">
-        <textarea id="specInput" placeholder="Enter spec format: PHON DUR RISE FALL"># Hello World with pitch variation
+      <textarea id="specInput" placeholder="Enter spec format: PHON DUR RISE FALL"># Hello World with pitch variation
 HH       0.150  0.010  120.0
 EH       0.140  0.018  115.0
 L        0.120  0.008  115.0
@@ -244,47 +240,40 @@ W        0.120  0.008  110.0
 ER       0.140  0.018  115.0
 L        0.120  0.008  115.0
 D        0.068  0.008  0.0</textarea>
-        <div class="spec-guide">
-            <strong>Spec Format:</strong> PHON DURATION RISE [FALL]<br>
-            Example: <code>OW 0.180 0.018 115.0 105.0</code><br>
-            • DURATION in seconds<br>
-            • RISE = starting pitch (Hz)<br>
-            • FALL (optional) = ending pitch (Hz)
-
-            <strong>Valid Phonemes (ARPABET):</strong><br>
-            SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER,<br>
-            B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
-            <strong>Tip:</strong> Use SIL between words for natural pauses
-        </div>
+      <div class="spec-guide">
+        <strong>Spec Format:</strong> PHON DURATION RISE [FALL]<br>
+        Example: <code>OW 0.180 0.018 115.0 105.0</code><br>
+        • DURATION in seconds<br>
+        • RISE = starting pitch (Hz)<br>
+        • FALL (optional) = ending pitch (Hz)
+        <strong>Valid Phonemes (ARPABET):</strong><br>
+        SIL, AH, AE, AA, AO, EH, EY, IH, IY, OW, UH, UW, ER,<br>
+        B, D, G, P, T, K, M, N, NG, L, R, F, S, SH, TH, DH, V, Z, ZH, W, Y, HH, CH, JH<br>
+        <strong>Tip:</strong> Use SIL between words for natural pauses
+      </div>
     </div>
-    
     <div class="controls">
-        <button id="synthesizeBtn" disabled>▶️ Synthesize</button>
-        <button id="playExampleBtn" disabled class="example-btn">🎵 Example</button>
-        <button id="downloadBtn" disabled class="download-btn">💾 Download WAV</button>
+      <button id="synthesizeBtn" disabled>▶️ Synthesize</button>
+      <button id="playExampleBtn" disabled class="example-btn">🎵 Example</button>
+      <button id="downloadBtn" disabled class="download-btn">💾 Download WAV</button>
     </div>
-    
     <div id="status" class="status-loading">Initializing Pyodide environment...</div>
-    
     <div class="info-box">
-        <strong>ℹ️ About Jim:</strong> Formant-based speech synthesizer running entirely in-browser via Pyodide.<br>
-        Converts text → phonemes → formant synthesis → WAV audio. No server required!
+      <strong>ℹ️ About Jim:</strong> Formant-based speech synthesizer running entirely in-browser via Pyodide.<br>
+      Converts text → phonemes → formant synthesis → WAV audio. No server required!
     </div>
-    
     <div class="audio-container">
-        <audio id="audioPlayer" controls>Your browser does not support the audio element.</audio>
-        <div class="audio-actions">
-            <button id="playBtn" disabled>▶️ Play</button>
-            <button id="pauseBtn" disabled>⏸️ Pause</button>
-        </div>
+      <audio id="audioPlayer" controls>Your browser does not support the audio element.</audio>
+      <div class="audio-actions">
+        <button id="playBtn" disabled>▶️ Play</button>
+        <button id="pauseBtn" disabled>⏸️ Pause</button>
+      </div>
     </div>
-    
     <div class="limitations">
-        ⚠️ <strong>Limitations:</strong> GitHub Pages has no server-side processing. All synthesis happens in your browser via WebAssembly (Pyodide). First load may take 15-30 seconds to initialize Python environment.
+      ⚠️ <strong>Limitations:</strong> GitHub Pages has no server-side processing. All synthesis happens in your browser via WebAssembly (Pyodide). First load may take 15-30 seconds to initialize Python environment.
     </div>
-</div>
-
-<script type="text/python" id="jim-source">
+  </div>
+  <script type="text/python" id="jim-source">
 import numpy as np
 import scipy.signal as sig
 import wave
@@ -297,6 +286,7 @@ from io import BytesIO
 # JIM.PY CORE CODE (Modified for browser execution)
 # ======================
 smp = 97000
+
 BYTE_TO_PHONEME = {
     0x00: 'SIL', 0x01: 'AH', 0x02: 'AE', 0x03: 'AA', 0x04: 'AO', 0x05: 'EH', 0x06: 'EY',
     0x07: 'IH', 0x08: 'IY', 0x09: 'OW', 0x0A: 'UH', 0x0B: 'UW', 0x0C: 'ER', 0x0D: 'B',
@@ -304,9 +294,9 @@ BYTE_TO_PHONEME = {
     0x16: 'L', 0x17: 'R', 0x18: 'F', 0x19: 'S', 0x1A: 'SH', 0x1B: 'TH', 0x1C: 'DH', 0x1D: 'V',
     0x1E: 'Z', 0x1F: 'ZH', 0x20: 'W', 0x21: 'Y', 0x22: 'HH', 0x23: 'CH', 0x24: 'JH',
 }
+
 PHONEME_TO_BYTE = {v: k for k, v in BYTE_TO_PHONEME.items()}
 VALID_PHONEMES = set(PHONEME_TO_BYTE.keys())
-
 VOWELS = {'AH','AE','AA','AO','EH','EY','IH','IY','OW','UH','UW','ER'}
 STOPS = {'P','T','K','B','D','G','CH'}
 FRICATIVES_UNVOICED = {'F','S','SH','TH','HH'}
@@ -428,9 +418,7 @@ def text_to_phonemes(text: str) -> List[str]:
 def parse_phoneme_input(text: str) -> List[str]:
     """Parse raw phoneme input (space-separated ARPABET phonemes)"""
     tokens = text.strip().upper().split()
-    # Filter to only valid phonemes, default to SIL for invalid tokens
     phonemes = [tok if tok in VALID_PHONEMES else 'SIL' for tok in tokens]
-    # Ensure we have at least SIL padding
     if not phonemes:
         return ['SIL', 'SIL']
     if phonemes[0] != 'SIL':
@@ -483,7 +471,6 @@ def phonemes_to_spec(phonemes: List[str], voice: Voice, pitch_base: float = 115.
         ph_data = voice.get_phoneme_data(ph)
         duration = ph_data.get('length', 0.14)
         overlap = 0.018 if ph in VOWELS and i < len(phonemes) - 1 else 0.008
-        
         if ph == 'SIL':
             pitch = [0.0]
         elif ph in VOWELS:
@@ -495,11 +482,9 @@ def phonemes_to_spec(phonemes: List[str], voice: Voice, pitch_base: float = 115.
                 pitch = [pitch_base]
         else:
             pitch = [pitch_base if ph_data.get('voiced', False) else 0.0]
-        
         f1 = ph_data.get('f1', 0.0) or 0.0
         f2 = ph_data.get('f2', 0.0) or 0.0
         f3 = ph_data.get('f3', 0.0) or 0.0
-        
         specs.append({
             'phoneme': ph,
             'duration': duration,
@@ -701,7 +686,6 @@ class FormantSynthesizer:
         total_duration = 0.0
         for spec in specs:
             total_duration += spec['duration']
-        
         for i in range(len(specs) - 1):
             total_duration -= min(specs[i].get('overlap', 0.0), specs[i]['duration'])
         
@@ -712,21 +696,17 @@ class FormantSynthesizer:
         for i, spec in enumerate(specs):
             phoneme_audio = self.synthesize_phoneme_direct(spec)
             phoneme_samples = len(phoneme_audio)
-            
             overlap_dur = spec.get('overlap', 0.0)
             if i == len(specs) - 1:
                 overlap_dur = 0.0
-            
             overlap_samples = min(
                 int(overlap_dur * self.fs),
                 phoneme_samples - 1,
                 int(spec['duration'] * self.fs * 0.5)
             )
-            
             end_pos = current_pos + phoneme_samples
             if end_pos > len(output):
                 output = np.resize(output, end_pos + 1000)
-            
             output[current_pos:end_pos] += phoneme_audio
             current_pos += (phoneme_samples - overlap_samples)
         
@@ -748,170 +728,130 @@ def generate_wav_bytes(audio: np.ndarray, sr: int = smp) -> bytes:
         wf.writeframes(audio_int16.tobytes())
     return buffer.getvalue()
 
-# CORRECTED mode detection - spec mode ONLY when tokens 2+ are numeric
-def is_spec_format(text: str) -> bool:
-    lines = [l.strip() for l in text.splitlines() if l.strip() and not l.strip().startswith('#')]
-    if not lines:
-        return False
-    parts = lines[0].split()
-    if len(parts) < 4:
-        return False
-    # Check if parts[1], parts[2], parts[3] are numeric (duration, overlap, pitch)
-    try:
-        float(parts[1])
-        float(parts[2])
-        float(parts[3])
-        return True
-    except ValueError:
-        return False
-
-# Unified synthesis function with CORRECT mode detection
-def synthesize_text(text: str):
-    text = text.strip()
-    if not text:
-        return generate_wav_bytes(np.zeros(int(0.5 * smp))), "empty"
-    
-    # FIRST check for spec format (requires numeric duration/overlap/pitch)
-    if is_spec_format(text):
-        specs = parse_phoneme_spec(text, VOICE_REGISTRY.current_voice)
-        mode = "spec"
-    else:
-        # Then check for phoneme mode (all tokens are valid phonemes)
-        tokens = text.upper().split()
-        if tokens and all(t in VALID_PHONEMES for t in tokens):
-            phonemes = parse_phoneme_input(text)
-            specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
-            mode = "phoneme"
-        else:
-            # Otherwise word mode
-            phonemes = text_to_phonemes(text)
-            specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
-            mode = "word"
-    
+# STRICT MODE HANDLING - NO AUTO-DETECTION
+def synthesize_word_mode(text: str):
+    phonemes = text_to_phonemes(text)
+    specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
     synth = FormantSynthesizer(VOICE_REGISTRY.current_voice)
     audio = synth.synthesize_from_specs(specs)
-    return generate_wav_bytes(audio), mode
-</script>
+    return generate_wav_bytes(audio), "word"
 
-<script>
-// ======================
-// JAVASCRIPT FRONTEND
-// ======================
+def synthesize_phoneme_mode(text: str):
+    phonemes = parse_phoneme_input(text)
+    specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
+    synth = FormantSynthesizer(VOICE_REGISTRY.current_voice)
+    audio = synth.synthesize_from_specs(specs)
+    return generate_wav_bytes(audio), "phoneme"
 
-let pyodide;
-let synthesizeFunc;
-let currentAudioUrl = null;
-let currentWavBlob = null;
+def synthesize_spec_mode(text: str):
+    specs = parse_phoneme_spec(text, VOICE_REGISTRY.current_voice)
+    synth = FormantSynthesizer(VOICE_REGISTRY.current_voice)
+    audio = synth.synthesize_from_specs(specs)
+    return generate_wav_bytes(audio), "spec"
+  </script>
+  <script>
+    // ======================
+    // JAVASCRIPT FRONTEND
+    // ======================
+    let pyodide;
+    let synthesizeWordFunc;
+    let synthesizePhonemeFunc;
+    let synthesizeSpecFunc;
+    let currentAudioUrl = null;
+    let currentWavBlob = null;
+    const statusEl = document.getElementById('status');
+    const synthesizeBtn = document.getElementById('synthesizeBtn');
+    const playExampleBtn = document.getElementById('playExampleBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const playBtn = document.getElementById('playBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const textInput = document.getElementById('textInput');
+    const phonemeInput = document.getElementById('phonemeInput');
+    const specInput = document.getElementById('specInput');
 
-const statusEl = document.getElementById('status');
-const synthesizeBtn = document.getElementById('synthesizeBtn');
-const playExampleBtn = document.getElementById('playExampleBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const playBtn = document.getElementById('playBtn');
-const pauseBtn = document.getElementById('pauseBtn');
-const audioPlayer = document.getElementById('audioPlayer');
-const textInput = document.getElementById('textInput');
-const phonemeInput = document.getElementById('phonemeInput');
-const specInput = document.getElementById('specInput');
-const modeIndicator = document.getElementById('modeIndicator');
-
-// Tab switching
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         const tabName = tab.dataset.tab;
         document.getElementById(`${tabName}-tab`).classList.add('active');
-        
-        // Update mode indicator based on tab
-        if (tabName === 'word') {
-            modeIndicator.className = 'mode-indicator mode-word';
-            modeIndicator.textContent = '🔤 Word Mode';
-        } else if (tabName === 'phoneme') {
-            modeIndicator.className = 'mode-indicator mode-phoneme';
-            modeIndicator.textContent = '👄 Phoneme Mode';
-        } else {
-            modeIndicator.className = 'mode-indicator mode-spec';
-            modeIndicator.textContent = '🎛️ Spec Mode';
-        }
+      });
     });
-});
 
-// Real-time mode detection for word tab
-textInput.addEventListener('input', () => {
-    const text = textInput.value.trim();
-    if (!text) {
-        modeIndicator.className = 'mode-indicator mode-unknown';
-        modeIndicator.textContent = '❓ Input mode will auto-detect';
-        return;
-    }
-    const tokens = text.toUpperCase().split(/\s+/);
-    const validPhonemes = new Set([
-        'SIL', 'AH', 'AE', 'AA', 'AO', 'EH', 'EY', 'IH', 'IY', 'OW', 'UH', 'UW', 'ER',
-        'B', 'D', 'G', 'P', 'T', 'K', 'M', 'N', 'NG', 'L', 'R', 'F', 'S', 'SH', 'TH',
-        'DH', 'V', 'Z', 'ZH', 'W', 'Y', 'HH', 'CH', 'JH'
-    ]);
-    if (tokens.every(t => validPhonemes.has(t))) {
-        modeIndicator.className = 'mode-indicator mode-phoneme';
-        modeIndicator.textContent = '👄 Phoneme Mode Detected';
-    } else {
-        modeIndicator.className = 'mode-indicator mode-word';
-        modeIndicator.textContent = '🔤 Word Mode';
-    }
-});
-
-async function setupPyodide() {
-    updateStatus("Loading Pyodide...", "status-loading");
-    try {
+    async function setupPyodide() {
+      updateStatus("Loading Pyodide...", "status-loading");
+      try {
         pyodide = await loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/"
         });
-        
         updateStatus("Installing packages...", "status-loading");
         await pyodide.loadPackage(["numpy", "scipy"]);
-        
         const jimSource = document.getElementById('jim-source').textContent;
         updateStatus("Initializing speech engine...", "status-loading");
-        
         pyodide.runPython(jimSource);
-        
         pyodide.runPython(`
-def js_synthesize(text):
+def js_synthesize_word(text):
     try:
-        wav_bytes, mode = synthesize_text(text)
+        wav_bytes, mode = synthesize_word_mode(text)
         return wav_bytes, mode
     except Exception as e:
         import traceback
-        print("Python error:")
         traceback.print_exc()
         return None, "error"
-`);
-        
-        synthesizeFunc = pyodide.globals.get("js_synthesize");
-        
+
+def js_synthesize_phoneme(text):
+    try:
+        wav_bytes, mode = synthesize_phoneme_mode(text)
+        return wav_bytes, mode
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return None, "error"
+
+def js_synthesize_spec(text):
+    try:
+        wav_bytes, mode = synthesize_spec_mode(text)
+        return wav_bytes, mode
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return None, "error"
+        `);
+        synthesizeWordFunc = pyodide.globals.get("js_synthesize_word");
+        synthesizePhonemeFunc = pyodide.globals.get("js_synthesize_phoneme");
+        synthesizeSpecFunc = pyodide.globals.get("js_synthesize_spec");
         updateStatus("✅ Ready! Enter text and click Synthesize", "status-ready");
         synthesizeBtn.disabled = false;
         playExampleBtn.disabled = false;
-        
-    } catch (error) {
+      } catch (error) {
         console.error("Pyodide setup failed:", error);
         updateStatus(`❌ Initialization failed: ${error.message}`, "status-error");
+      }
     }
-}
 
-function updateStatus(message, className) {
-    statusEl.textContent = message;
-    statusEl.className = className;
-}
+    function updateStatus(message, className) {
+      statusEl.textContent = message;
+      statusEl.className = className;
+    }
 
-async function synthesize(text) {
-    if (!synthesizeFunc) {
+    async function synthesize(text, mode) {
+      if (!synthesizeWordFunc || !synthesizePhonemeFunc || !synthesizeSpecFunc) {
         alert("Engine not ready yet. Please wait.");
         return null;
-    }
-    
-    try {
+      }
+      
+      let func;
+      switch(mode) {
+        case 'word': func = synthesizeWordFunc; break;
+        case 'phoneme': func = synthesizePhonemeFunc; break;
+        case 'spec': func = synthesizeSpecFunc; break;
+        default: return null;
+      }
+      
+      try {
         updateStatus("🔊 Synthesizing...", "status-processing");
         synthesizeBtn.disabled = true;
         playExampleBtn.disabled = true;
@@ -919,162 +859,140 @@ async function synthesize(text) {
         playBtn.disabled = true;
         pauseBtn.disabled = true;
         
-        // Call Python synthesis
-        const result = synthesizeFunc(text);
+        const result = func(text);
         if (!result || result[0] === null) {
-            throw new Error("Synthesis returned null");
+          throw new Error("Synthesis returned null");
         }
-        
-        const [wavBytes, mode] = result;
-        
-        // Convert to JavaScript Uint8Array
+        const [wavBytes, detectedMode] = result;
         const wavArray = wavBytes.toJs();
         wavBytes.destroy();
         
         if (!wavArray || wavArray.length < 44) {
-            throw new Error(`Invalid WAV data: ${wavArray ? wavArray.length : 0} bytes`);
+          throw new Error(`Invalid WAV data: ${wavArray ? wavArray.length : 0} bytes`);
         }
         
-        // Create Blob from Uint8Array
         const wavBuffer = wavArray.buffer.slice(wavArray.byteOffset, wavArray.byteOffset + wavArray.byteLength);
         currentWavBlob = new Blob([wavBuffer], { type: 'audio/wav' });
         
-        // Create URL for audio element
         if (currentAudioUrl) {
-            URL.revokeObjectURL(currentAudioUrl);
+          URL.revokeObjectURL(currentAudioUrl);
         }
         currentAudioUrl = URL.createObjectURL(currentWavBlob);
-        
-        // Set audio source
         audioPlayer.src = currentAudioUrl;
         audioPlayer.load();
         
-        // Enable controls after audio is ready
         audioPlayer.onloadeddata = () => {
-            downloadBtn.disabled = false;
-            playBtn.disabled = false;
-            pauseBtn.disabled = false;
-            
-            const modeNames = {
-                'word': 'Text',
-                'phoneme': 'Phonemes', 
-                'spec': 'Spec',
-                'empty': 'Empty',
-                'error': 'Error'
-            };
-            
-            const sizeKB = (wavArray.length / 1024).toFixed(1);
-            updateStatus(`✅ ${modeNames[mode] || mode} synthesized! (${sizeKB} KB)`, "status-ready");
+          downloadBtn.disabled = false;
+          playBtn.disabled = false;
+          pauseBtn.disabled = false;
+          const modeNames = {
+            'word': 'Word',
+            'phoneme': 'Phoneme',
+            'spec': 'Spec',
+            'empty': 'Empty',
+            'error': 'Error'
+          };
+          const sizeKB = (wavArray.length / 1024).toFixed(1);
+          updateStatus(`✅ ${modeNames[detectedMode] || detectedMode} synthesized! (${sizeKB} KB)`, "status-ready");
         };
         
         audioPlayer.onerror = (e) => {
-            console.error("Audio load error:", e);
-            updateStatus(`❌ Audio playback failed. Try downloading instead.`, "status-error");
-            downloadBtn.disabled = false;
+          console.error("Audio load error:", e);
+          updateStatus(`❌ Audio playback failed. Try downloading instead.`, "status-error");
+          downloadBtn.disabled = false;
         };
         
         return currentAudioUrl;
-        
-    } catch (error) {
+      } catch (error) {
         console.error("Synthesis error:", error);
         updateStatus(`❌ Synthesis failed: ${error.message}`, "status-error");
-        alert(`Synthesis failed: ${error.message}\n\nCheck console for details.`);
+        alert(`Synthesis failed: ${error.message}\nCheck console for details.`);
         return null;
-    } finally {
+      } finally {
         synthesizeBtn.disabled = false;
         playExampleBtn.disabled = false;
+      }
     }
-}
 
-function downloadWav() {
-    if (!currentWavBlob) {
+    function downloadWav() {
+      if (!currentWavBlob) {
         alert("No audio to download. Please synthesize first.");
         return;
-    }
-    
-    try {
-        // Get filename based on current tab
+      }
+      try {
         const activeTab = document.querySelector('.tab.active').dataset.tab;
         let filename = 'jim_output';
-        
         if (activeTab === 'word') {
-            const text = textInput.value.trim().substring(0, 30).replace(/[^\w\s]/g, '');
-            filename = text ? `jim_${text.replace(/\s+/g, '_')}` : 'jim_output';
+          const text = textInput.value.trim().substring(0, 30).replace(/[^\w\s]/g, '');
+          filename = text ? `jim_${text.replace(/\s+/g, '_')}` : 'jim_output';
         } else if (activeTab === 'phoneme') {
-            filename = 'jim_phonemes';
+          filename = 'jim_phonemes';
         } else {
-            filename = 'jim_spec';
+          filename = 'jim_spec';
         }
         
-        // Create download link
         const downloadUrl = URL.createObjectURL(currentWavBlob);
-        
         const link = document.createElement('a');
         link.href = downloadUrl;
         link.download = `${filename}.wav`;
-        
-        // Append to body, click, then remove
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        // Clean up URL after download
         setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
-        
         updateStatus("💾 Download started!", "status-ready");
-        
-    } catch (error) {
+      } catch (error) {
         console.error("Download error:", error);
         alert(`Download failed: ${error.message}`);
+      }
     }
-}
 
-// Playback controls
-playBtn.addEventListener('click', () => {
-    if (audioPlayer.src) {
+    // Playback controls
+    playBtn.addEventListener('click', () => {
+      if (audioPlayer.src) {
         audioPlayer.play().catch(e => {
-            console.log("Autoplay prevented:", e);
-            alert("Browser blocked autoplay. Click directly on the audio player controls to play.");
+          console.log("Autoplay prevented:", e);
+          alert("Browser blocked autoplay. Click directly on the audio player controls to play.");
         });
-    }
-});
+      }
+    });
+    pauseBtn.addEventListener('click', () => {
+      audioPlayer.pause();
+    });
 
-pauseBtn.addEventListener('click', () => {
-    audioPlayer.pause();
-});
-
-// Synthesize button
-synthesizeBtn.addEventListener('click', async () => {
-    const activeTab = document.querySelector('.tab.active').dataset.tab;
-    let text;
-    
-    if (activeTab === 'word') {
+    // Synthesize button - STRICT MODE SELECTION
+    synthesizeBtn.addEventListener('click', async () => {
+      const activeTab = document.querySelector('.tab.active').dataset.tab;
+      let text, mode;
+      
+      if (activeTab === 'word') {
         text = textInput.value.trim();
-    } else if (activeTab === 'phoneme') {
+        mode = 'word';
+      } else if (activeTab === 'phoneme') {
         text = phonemeInput.value.trim();
-    } else {
+        mode = 'phoneme';
+      } else {
         text = specInput.value.trim();
-    }
-    
-    if (!text) {
+        mode = 'spec';
+      }
+      
+      if (!text) {
         alert("Please enter some input first!");
         return;
-    }
-    
-    await synthesize(text);
-});
+      }
+      
+      await synthesize(text, mode);
+    });
 
-// Example button
-playExampleBtn.addEventListener('click', async () => {
-    const activeTab = document.querySelector('.tab.active').dataset.tab;
-    
-    if (activeTab === 'word') {
+    // Example button
+    playExampleBtn.addEventListener('click', async () => {
+      const activeTab = document.querySelector('.tab.active').dataset.tab;
+      if (activeTab === 'word') {
         textInput.value = "hello world this is a robot voice";
-        await synthesize(textInput.value);
-    } else if (activeTab === 'phoneme') {
+        await synthesize(textInput.value, 'word');
+      } else if (activeTab === 'phoneme') {
         phonemeInput.value = "HH EH L OW SIL W ER L D SIL DH IH S SIL IH Z SIL AH SIL R OW B AA T SIL V AO Y S";
-        await synthesize(phonemeInput.value);
-    } else {
+        await synthesize(phonemeInput.value, 'phoneme');
+      } else {
         specInput.value = `# Hello World with pitch variation
 HH       0.150  0.010  120.0
 EH       0.140  0.018  115.0
@@ -1085,22 +1003,22 @@ W        0.120  0.008  110.0
 ER       0.140  0.018  115.0
 L        0.120  0.008  115.0
 D        0.068  0.008  0.0`;
-        await synthesize(specInput.value);
-    }
-});
+        await synthesize(specInput.value, 'spec');
+      }
+    });
 
-// Download button
-downloadBtn.addEventListener('click', downloadWav);
+    // Download button
+    downloadBtn.addEventListener('click', downloadWav);
 
-// Cleanup on page unload
-window.addEventListener('beforeunload', () => {
-    if (currentAudioUrl) {
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      if (currentAudioUrl) {
         URL.revokeObjectURL(currentAudioUrl);
-    }
-});
+      }
+    });
 
-// Initialize
-window.addEventListener('load', setupPyodide);
-</script>
+    // Initialize
+    window.addEventListener('load', setupPyodide);
+  </script>
 </body>
 </html>
