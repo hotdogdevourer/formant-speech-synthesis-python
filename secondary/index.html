@@ -629,13 +629,13 @@ class FormantSynthesizer:
         
         if not voiced:
             if ph == 'S':
-                intensity = 0.64
+                intensity = 1.28
             elif ph == 'SH':
-                intensity = 0.32
+                intensity = 0.64
             elif ph in {'F', 'TH'}:
                 intensity = 0.32
             else:
-                intensity = 0.25
+                intensity = 0.32
             source = self.generate_shaped_noise(dur, ph, intensity=intensity)
             if f1 > 50:
                 if ph in {'S', 'SH'}:
