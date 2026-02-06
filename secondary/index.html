@@ -47,12 +47,13 @@ OW   0.140  0.018  115.0</textarea>
         
         async function main() {
             pyodide = await loadPyodide();
-            pyodide.runPython(`
+            await pyodide.loadPackage("micropip");
+            await pyodide.runPythonAsync(`
                 import micropip
                 await micropip.install(['numpy', 'scipy'])
             `);
             
-            // Load your FSB4.py code
+            // Load your FSB4.py code with proper indentation
             const fsb4Code = `
 import numpy as np
 import scipy.signal as sig
@@ -593,8 +594,8 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
         wf.setsampwidth(2)
         wf.setframerate(sr)
         wf.writeframes(audio.tobytes())
-`;
-            pyodide.runPython(fsb4Code);
+            `;
+            await pyodide.runPythonAsync(fsb4Code);
             
             document.getElementById("output").innerHTML = "FSB4 loaded successfully!";
         }
@@ -605,7 +606,7 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
             const voiceName = document.getElementById("voiceSelect").value;
 
             try {
-                const result = pyodide.runPython(`
+                const result = pyodide.runPythonSync(`
                     import io
                     import wave
                     import base64
@@ -614,10 +615,10 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
                     VOICE_REGISTRY.set_current_voice("${voiceName}")
                     
                     # Process text or phoneme spec
-                    if "${phonemeSpec}".startswith("#"):
-                        specs = parse_phoneme_spec("${phonemeSpec}", VOICE_REGISTRY.current_voice)
+                    if """${phonemeSpec}""".startswith("#"):
+                        specs = parse_phoneme_spec("""${phonemeSpec}""", VOICE_REGISTRY.current_voice)
                     else:
-                        phonemes = text_to_phonemes("${text}")
+                        phonemes = text_to_phonemes("""${text}""")
                         specs = phonemes_to_spec(phonemes, VOICE_REGISTRY.current_voice)
                     
                     # Synthesize audio
@@ -638,7 +639,7 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
                 audio.play();
                 
                 // Update phoneme display
-                const readableSpecs = pyodide.runPython(`
+                const readableSpecs = pyodide.runPythonSync(`
                     specs_to_readable(specs)
                 `);
                 document.getElementById("phonemeInput").value = readableSpecs;
@@ -649,12 +650,12 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
         }
         
         function savePhonemes() {
-            const specs = pyodide.runPython(`
+            const specs = pyodide.runPythonSync(`
                 import io
                 import base64
                 
                 # Parse current phoneme spec
-                specs = parse_phoneme_spec("${document.getElementById("phonemeInput").value}", VOICE_REGISTRY.current_voice)
+                specs = parse_phoneme_spec("""${document.getElementById("phonemeInput").value}""", VOICE_REGISTRY.current_voice)
                 
                 # Save to buffer
                 buffer = io.BytesIO()
@@ -687,7 +688,7 @@ def save_wav(filename: str, audio: np.ndarray, sr: int = smp):
                 const base64Data = btoa(String.fromCharCode.apply(null, bytes));
                 
                 try {
-                    const specs = pyodide.runPython(`
+                    const specs = pyodide.runPythonSync(`
                         import io
                         import base64
                         
