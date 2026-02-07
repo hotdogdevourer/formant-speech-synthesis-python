@@ -1013,16 +1013,20 @@ def js_synthesize_spec(text, sample_rate=97000):
             }
             
             let func;
-            // READ FROM ACTIVE SLIDER INSTEAD OF GLOBAL VARIABLE
-            const activeTab = document.querySelector('.tab.active').dataset.tab;
-            let sampleRate = 97000;
+            let sampleRate = currentSampleRate;
             
-            if (activeTab === 'word') {
-                sampleRate = parseInt(document.getElementById('sampleRateSlider').value);
-            } else if (activeTab === 'phoneme') {
-                sampleRate = parseInt(document.getElementById('sampleRateSlider2').value);
-            } else if (activeTab === 'spec') {
-                sampleRate = parseInt(document.getElementById('sampleRateSlider3').value);
+            switch(mode) {
+                case 'word': 
+                    func = synthesizeWordFunc; 
+                    break;
+                case 'phoneme': 
+                    func = synthesizePhonemeFunc; 
+                    break;
+                case 'spec': 
+                    func = synthesizeSpecFunc;
+                    break;
+                default: 
+                    return null;
             }
             
             try {
